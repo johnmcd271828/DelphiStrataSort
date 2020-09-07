@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{B18914C3-5C26-4D8B-A277-0ADA66422781}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="SortExample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SortUnitTests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SortSpeedTest.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="SortExample">
+        <MSBuild Projects="SortExample.dproj"/>
+    </Target>
+    <Target Name="SortExample:Clean">
+        <MSBuild Projects="SortExample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SortExample:Make">
+        <MSBuild Projects="SortExample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SortUnitTests">
+        <MSBuild Projects="SortUnitTests.dproj"/>
+    </Target>
+    <Target Name="SortUnitTests:Clean">
+        <MSBuild Projects="SortUnitTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SortUnitTests:Make">
+        <MSBuild Projects="SortUnitTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SortSpeedTest">
+        <MSBuild Projects="SortSpeedTest.dproj"/>
+    </Target>
+    <Target Name="SortSpeedTest:Clean">
+        <MSBuild Projects="SortSpeedTest.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SortSpeedTest:Make">
+        <MSBuild Projects="SortSpeedTest.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="SortExample;SortUnitTests;SortSpeedTest"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="SortExample:Clean;SortUnitTests:Clean;SortSpeedTest:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="SortExample:Make;SortUnitTests:Make;SortSpeedTest:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
