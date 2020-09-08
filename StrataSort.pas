@@ -31,29 +31,27 @@ type
     /// </summary>
     type  TSortStackItem = class
     strict private
-      Sorter: TStrataSort<T>;
+      SortCompare: TComparison<T>;
       PrevStackItem: TSortStackItem;    // A reference to the SortStackItem below this in the SortStack.
       SortItems: array of T;    // An array of Max(1, 2*(n-1)) SortItems, where n is the index of this SortStackItem in the SortStack.
       FCount: Integer;    // count of valid items in sortItems. ( there may still be obsolete items left in sortItems )
       // The following three fields; FIndex, FCurrent and FEof are only valid after GetFirst or GetNext has been called.
       FIndex: Integer;    // The index of the next item in sortItems.
+      FEof: Boolean;      // True when there are no more items at this or lower levels that haven't already been passed up to higher levels.
       FCurrent: T;        // The current item in the sort from either sortItems or prevStackItem.
                           // FCurrent is the earliest item that we know about at this level, that hasn't already been passed up to a higher level.
-      FEof: Boolean;      // True when there are no more items at this or lower levels that haven't already been passed up to higher levels.
     public
       constructor Create(const ACapacity: Integer;
                          const APrevStackItem: TSortStackItem;
-                         const ASorter: TStrataSort<T>);
+                         const ASortCompare: TComparison<T>);
       procedure Clear;
-      procedure ClearAll;
       procedure AddSingleItem(const Item: T); inline;
       procedure GetNext;
       procedure GetFirst;
       procedure LoadFromPreviousLevels;
-      // The following three properties; Index, Current and Eof are only valid after GetFirst or GetNext has been called.
       property Count: Integer read FCount;
-      property Current: T read FCurrent;
-      property Eof: Boolean read FEof;
+      property Current: T read FCurrent;    // Eof is only valid after GetFirst or GetNext has been called.
+      property Eof: Boolean read FEof;    // Eof is only valid after GetFirst or GetNext has been called.
     end;
 
     /// <summary>
@@ -71,9 +69,8 @@ type
     SortStack: TObjectList<TSortStackItem>;
     FirstSortStackItem: TSortStackItem;
     StackTop: Integer;
-    TopSortStackItem: TSortStackItem;
+    TopSortStackItem: TSortStackItem;    // TopSortStackItem is null before RunSort and assigned after.
     procedure Clear;
-    procedure ClearAll;
     procedure GetNext;
     function  GetCurrent: T;
     function  GetEof: Boolean;
@@ -112,9 +109,9 @@ implementation
 
 constructor TStrataSort<T>.TSortStackItem.Create(const ACapacity: Integer;
                                                  const APrevStackItem: TSortStackItem;
-                                                 const ASorter: TStrataSort<T>);
+                                                 const ASortCompare: TComparison<T>);
 begin
-  Sorter := ASorter;
+  SortCompare := ASortCompare;
   PrevStackItem := APrevStackItem;
   SetLength(SortItems, ACapacity);
   FCount := 0;
@@ -133,22 +130,6 @@ begin
     PrevStackItem.Clear;
 end;
 
-procedure TStrataSort<T>.TSortStackItem.ClearAll;
-var
-  Index: Integer;
-begin
-  for Index := 0 to Length(SortItems) - 1 do
-  begin
-    SortItems[Index] := Default(T);
-  end;
-  FCount := 0;
-  FIndex := -1;
-  FCurrent := Default(T);
-  FEof := true;
-  if Assigned(PrevStackItem) then
-    PrevStackItem.ClearAll;
-end;
-
 // This should only be called for the first SortStackItem in the SortStack.
 procedure TStrataSort<T>.TSortStackItem.AddSingleItem(const Item: T);
 begin
@@ -159,10 +140,8 @@ begin
 end;
 
 /// This will set Current, FIndex and Eof.
-/// Note that Current will never be the same in more than one SortStackItem.
+/// Note that Current will never be the same item in more than one SortStackItem.
 procedure TStrataSort<T>.TSortStackItem.GetNext;
-var
-  Item1, Item2: T;
 begin
   if ( PrevStackItem = nil ) or
      PrevStackItem.Eof then
@@ -185,16 +164,14 @@ begin
   end
   else
   begin
-    Item1 := SortItems[FIndex];
-    Item2 := PrevStackItem.Current;
-    if Sorter.SortCompare(Item1, Item2) <= 0 then
+    if SortCompare(SortItems[FIndex], PrevStackItem.Current) <= 0 then
     begin
-      FCurrent := Item1;
+      FCurrent := SortItems[FIndex];
       Inc(FIndex);
     end
     else
     begin
-      FCurrent := Item2;
+      FCurrent := PrevStackItem.Current;
       PrevStackItem.GetNext;
     end;
   end;
@@ -254,21 +231,14 @@ end;
 { TStrataSort<T> }
 
 /// <summary>
-/// Reset things so that we're ready for a new sort.
+/// This is used to clear everything at the start of a new sort,
+/// and to free memory and reference counts at the end of a sort.
 /// </summary>
 procedure TStrataSort<T>.Clear;
 begin
-  SortStack[SortStack.Count - 1].Clear;
-  StackTop := 0;    // leave StackTop pointing to the first SortStackItem.
-  TopSortStackItem := nil;
-end;
-
-/// <summary>
-/// Clear all SortStackItems and detach all sortItems so that reference counts can be freed up.
-/// </summary>
-procedure TStrataSort<T>.ClearAll;
-begin
-  SortStack[SortStack.Count - 1].ClearAll;
+  SortStack.Clear;
+  FirstSortStackItem := TSortStackItem.Create(1, nil, SortCompare);
+  SortStack.Add(FirstSortStackItem);
   StackTop := 0;    // leave StackTop pointing to the first SortStackItem.
   TopSortStackItem := nil;
 end;
@@ -294,7 +264,7 @@ begin
     else
     begin
       StackItemCapacity := 1 shl StackTop;
-      SortStack.Add(TSortStackItem.Create(StackItemCapacity, SortStack[stackTop], Self));
+      SortStack.Add(TSortStackItem.Create(StackItemCapacity, SortStack[stackTop], SortCompare));
       Inc(StackTop);
     end;
   end;
@@ -343,22 +313,28 @@ var
   InternalList: arrayofT;
 begin
   Clear;
-  for Item in AList do
-    SortRelease(Item);
+  try
+    // If we are sorting a TObjectList with OwnsObjects = True, overwriting an
+    // object reference via the Items property will result in objects being destroyed.
+    // To prevent this happening while we are loading sorted items back into the list,
+    // we access the internal list via the List property.
+    InternalList := arrayofT(AList.List);
 
-  RunSort;
+    for Index := 0 to AList.Count - 1 do
+      SortRelease(InternalList[Index]);
 
-  // To prevent objects in the list being destroyed when we are loading the sorted items back into the list,
-  // we have to access the internal list via the List property.
-  InternalList := arrayofT(AList.List);
-  for Index := 0 to AList.Count - 1 do
-  begin
-    Assert(not Eof, 'Sort: Premature Eof.');
-    InternalList[Index] := Current;
-    GetNext;
+    RunSort;
+
+    for Index := 0 to AList.Count - 1 do
+    begin
+      Assert(not Eof, 'Sort: Premature Eof.');
+      InternalList[Index] := Current;
+      GetNext;
+    end;
+    Assert(Eof, 'Sort: Eof expected.');
+  finally
+    Clear;
   end;
-  Assert(Eof, 'Sort: Eof expected.');
-  ClearAll;
 end;
 
 // Sort everything from one list into another.
@@ -373,15 +349,18 @@ begin
     raise ESortError.Create('Destination lists must be empty.');
 
   Clear;
-  for Item in ASourceList do
-    SortRelease(Item);
+  try
+    for Item in ASourceList do
+      SortRelease(Item);
 
-  RunSort;
+    RunSort;
 
-  ADestinationList.Capacity := ASourceList.Count;
-  while not Eof do
-    ADestinationList.Add(SortReturn);
-  ClearAll;
+    ADestinationList.Capacity := ADestinationList.Capacity + ASourceList.Count;
+    while not Eof do
+      ADestinationList.Add(SortReturn);
+  finally
+    Clear;
+  end;
 end;
 
 
@@ -395,9 +374,9 @@ begin
   inherited Create;
   SortCompare := ASortCompare;
   SortStack := TObjectList<TSortStackItem>.Create;
-  FirstSortStackItem:= TSortStackItem.Create(1, nil, Self);
+  FirstSortStackItem := TSortStackItem.Create(1, nil, SortCompare);
   SortStack.Add(FirstSortStackItem);
-  StackTop := 0;
+  StackTop := 0;    // leave StackTop pointing to the first SortStackItem.
   TopSortStackItem := nil;
 end;
 
