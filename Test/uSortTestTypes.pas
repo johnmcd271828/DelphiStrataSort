@@ -14,7 +14,7 @@ unit uSortTestTypes;
 interface
 
 uses
-  System.SysUtils, System.Generics.Collections;
+  System.SysUtils, System.Generics.Defaults, System.Generics.Collections;
 
 function CompareInt(const Left, Right: Integer): Integer;
 
@@ -22,6 +22,15 @@ type
   TCreateListFn<T> = reference to function: TList<T>;
   TCreateItemFn<T> = reference to function(const AValue: Integer;
                                            const ASequence: Integer): T;
+  TLoadListProc<T> = reference to procedure(const CreateItemFn: TCreateItemFn<T>;
+                                            const List: TList<T>;
+                                            const ListSize: Integer);
+  TSortProc<T> = reference to procedure(const List: TList<T>;
+                                        const CompareFn: TComparison<T>);
+  TSortCheckProc<T> = reference to procedure(const List: TList<T>;
+                                             const ListSize: Integer;
+                                             const CompareFn: TComparison<T>;
+                                             const StableSort: Boolean);
 
   ESortTestError = class(Exception);
 
@@ -35,12 +44,22 @@ type
     class function CompareInteger(const Left, Right: Integer): Integer;
     class procedure IntegerSortCheck(const List: TList<Integer>;
                                      const ListSize: Integer;
+                                     const CompareFn: TComparison<Integer>;
                                      const StableSort: Boolean);
+
+    class function CreateByteTestItem(const AValue: Integer;
+                                      const ASequence: Integer): Byte;
+    class function CompareByte(const Left, Right: Byte): Integer;
+    class procedure ByteSortCheck(const List: TList<Byte>;
+                                  const ListSize: Integer;
+                                  const CompareFn: TComparison<Byte>;
+                                  const StableSort: Boolean);
 
     class function CreateStringTestItem(const AValue: Integer;
                                         const ASequence: Integer): string;
     class procedure StringSortCheck(const List: TList<string>;
                                     const ListSize: Integer;
+                                    const CompareFn: TComparison<string>;
                                     const StableSort: Boolean);
 
     class procedure LoadRandomList<T>(const CreateItemFn: TCreateItemFn<T>;
@@ -60,6 +79,9 @@ type
                                          const ListSize: Integer);
   end;
 
+  /// <summary>
+  /// A record type containing no reference counted items.
+  /// </summary>
   TTestIntegerRecord = record
   strict private
     FValue: Integer;
@@ -73,11 +95,15 @@ type
     class function Compare(const Left, Right: TTestIntegerRecord): Integer; static;
     class procedure SortCheck(const List: TList<TTestIntegerRecord>;
                               const ListSize: Integer;
+                              const CompareFn: TComparison<TTestIntegerRecord>;
                               const StableSort: Boolean); static;
     property Value: Integer read FValue;
     property Sequence: Integer read FSequence;
   end;
 
+  /// <summary>
+  /// A record type containing strings, which require reference counting.
+  /// </summary>
   TTestStringRecord = record
   strict private
     FValue: string;
@@ -91,8 +117,37 @@ type
     class function Compare(const Left, Right: TTestStringRecord): Integer; static;
     class procedure SortCheck(const List: TList<TTestStringRecord>;
                               const ListSize: Integer;
+                              const CompareFn: TComparison<TTestStringRecord>;
                               const StableSort: Boolean); static;
     property Value: string read FValue;
+    property Sequence: Integer read FSequence;
+  end;
+
+  /// <summary>
+  /// A record type with a default initializer, that will set field values to default values.
+  ///  In this test case, the value will be set to a random one or two digit string.
+  ///  This is only effective in Delphi 10.4 Sydney and later.
+  ///  For earlier versions of Delphi, it will behave like a normal record.
+  /// </summary>
+  TTestManagedRecord = record
+  strict private
+    FValue: string;
+    FUnused: string;
+    FSequence: Integer;
+  public
+  {$IF CompilerVersion >= 34.0}    // Delphi 10.4 Sydney and later
+    class operator Initialize (out Rec: TTestManagedRecord);
+  {$IFEND}
+    constructor Create(const AValue: string;
+                       const ASequence: Integer);
+    class function CreateTestItem(const AValue: Integer;
+                                  const ASequence: Integer): TTestManagedRecord; static;
+    class function Compare(const Left, Right: TTestManagedRecord): Integer; static;
+    class procedure SortCheck(const List: TList<TTestManagedRecord>;
+                              const ListSize: Integer;
+                              const CompareFn: TComparison<TTestManagedRecord>;
+                              const StableSort: Boolean); static;
+    property Value: string read FValue write FValue;
     property Sequence: Integer read FSequence;
   end;
 
@@ -108,6 +163,7 @@ type
     class function Compare(const Left, Right: TTestObject): Integer;
     class procedure SortCheck(const List: TList<TTestObject>;
                               const ListSize: Integer;
+                              const CompareFn: TComparison<TTestObject>;
                               const StableSort: Boolean);
     property Value: Integer read FValue;
     property Sequence: Integer read FSequence;
@@ -120,6 +176,9 @@ type
     property Sequence: Integer read GetSequence;
   end;
 
+  /// <summary>
+  /// A class that implements ITestInterface.
+  /// </summary>
   TTestInterfaceObject = class(TInterfacedObject, ITestInterface)
   strict private
     FValue: Integer;
@@ -134,6 +193,7 @@ type
     class function Compare(const Left, Right: ITestInterface): Integer;
     class procedure SortCheck(const List: TList<ITestInterface>;
                               const ListSize: Integer;
+                              const CompareFn: TComparison<ITestInterface>;
                               const StableSort: Boolean);
     property Value: Integer read GetValue;
     property Sequence: Integer read GetSequence;
@@ -174,6 +234,7 @@ end;
 
 class procedure TTestAssistant.IntegerSortCheck(const List: TList<Integer>;
                                                 const ListSize: Integer;
+                                                const CompareFn: TComparison<Integer>;
                                                 const StableSort: Boolean);
 var
   Item: Integer;
@@ -194,7 +255,49 @@ begin
       end
       else
       begin
-        if PrevItem > Item then
+        if CompareFn(PrevItem, Item) > 0 then
+          raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem) +
+                                      ' > ' + IntToStr(Item));
+      end;
+      PrevItem := Item;
+    end;
+end;
+
+class function TTestAssistant.CreateByteTestItem(const AValue: Integer;
+                                                 const ASequence: Integer): Byte;
+begin
+  Result := AValue;
+end;
+
+class function TTestAssistant.CompareByte(const Left, Right: Byte): Integer;
+begin
+  Result := CompareValue(Left, Right);
+end;
+
+class procedure TTestAssistant.ByteSortCheck(const List: TList<Byte>;
+                                             const ListSize: Integer;
+                                             const CompareFn: TComparison<Byte>;
+                                             const StableSort: Boolean);
+var
+  Item: Byte;
+  PrevItem: Byte;
+  IsFirstItem: Boolean;
+begin
+    if List.Count <> ListSize then
+      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
+                                  ', ListSize = ' + IntToStr(ListSize));
+
+    PrevItem := 0;
+    IsFirstItem := True;
+    for Item in List do
+    begin
+      if IsFirstItem then
+      begin
+        IsFirstItem := False;
+      end
+      else
+      begin
+        if CompareFn(PrevItem, Item) > 0 then
           raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem) +
                                       ' > ' + IntToStr(Item));
       end;
@@ -210,6 +313,7 @@ end;
 
 class procedure TTestAssistant.StringSortCheck(const List: TList<string>;
                                                const ListSize: Integer;
+                                               const CompareFn: TComparison<string>;
                                                const StableSort: Boolean);
 var
   Item: string;
@@ -230,7 +334,7 @@ begin
       end
       else
       begin
-        if CompareText(PrevItem, Item) > 0 then
+        if CompareFn(PrevItem, Item) > 0 then
           raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem + '''' +
                                       ' > ''' + Item + '''');
       end;
@@ -339,6 +443,7 @@ end;
 
 class procedure TTestIntegerRecord.SortCheck(const List: TList<TTestIntegerRecord>;
                                              const ListSize: Integer;
+                                             const CompareFn: TComparison<TTestIntegerRecord>;
                                              const StableSort: Boolean);
 var
   Item: TTestIntegerRecord;
@@ -358,11 +463,11 @@ begin
       end
       else
       begin
-        if PrevItem.Value > Item.Value then
+        if CompareFn(PrevItem, Item) > 0 then
           raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
                                       ' > ' + IntToStr(Item.Value))
         else if StableSort and
-                ( PrevItem.Value = Item.Value ) and
+                ( CompareFn(PrevItem, Item) = 0 ) and
                 ( PrevItem.Sequence >= Item.Sequence ) then
           raise ESortTestError.Create('SortCheck Stability Error: ' +
                                       'Value = ' + IntToStr(Item.Value) + ', ' +
@@ -396,6 +501,7 @@ end;
 
 class procedure TTestStringRecord.SortCheck(const List: TList<TTestStringRecord>;
                                             const ListSize: Integer;
+                                            const CompareFn: TComparison<TTestStringRecord>;
                                             const StableSort: Boolean);
 var
   Item: TTestStringRecord;
@@ -415,11 +521,76 @@ begin
       end
       else
       begin
-        if CompareText(PrevItem.Value, Item.Value) > 0 then
+        if CompareFn(PrevItem, Item) > 0 then
           raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem.Value +  '''' +
                                       ' > ''' + Item.Value + '''' )
         else if StableSort and
-                ( CompareText(PrevItem.Value, Item.Value) = 0 ) and
+                ( CompareFn(PrevItem, Item) = 0 ) and
+                ( PrevItem.Sequence >= Item.Sequence ) then
+          raise ESortTestError.Create('SortCheck Stability Error: ' +
+                                      'Value = ''' + Item.Value + ''', ' +
+                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
+                                      ' >= ' + IntToStr(Item.Sequence));
+      end;
+      PrevItem := Item;
+    end;
+end;
+
+{ TTestManagedRecord }
+
+{$IF CompilerVersion >= 34.0}    // Delphi 10.4 Sydney and later
+class operator TTestManagedRecord.Initialize(out Rec: TTestManagedRecord);
+begin
+  Rec.Value := IntToStr(Random(100));
+end;
+{$IFEND}
+
+constructor TTestManagedRecord.Create(const AValue: string;
+                                      const ASequence: Integer);
+begin
+  FValue := AValue;
+  FUnused := AValue;
+  FSequence := ASequence;
+end;
+
+class function TTestManagedRecord.CreateTestItem(const AValue: Integer;
+                                                 const ASequence: Integer): TTestManagedRecord;
+begin
+  Result.Create('SortString' + Format('%.9d', [AValue]), ASequence);
+end;
+
+class function TTestManagedRecord.Compare(const Left, Right: TTestManagedRecord): Integer;
+begin
+  Result := CompareText(Left.Value, Right.Value);
+end;
+
+class procedure TTestManagedRecord.SortCheck(const List: TList<TTestManagedRecord>;
+                                             const ListSize: Integer;
+                                             const CompareFn: TComparison<TTestManagedRecord>;
+                                             const StableSort: Boolean);
+var
+  Item: TTestManagedRecord;
+  PrevItem: TTestManagedRecord;
+  IsFirstItem: Boolean;
+begin
+    if List.Count <> ListSize then
+      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
+                                  ', ListSize = ' + IntToStr(ListSize));
+
+    IsFirstItem := True;
+    for Item in List do
+    begin
+      if IsFirstItem then
+      begin
+        IsFirstItem := False;
+      end
+      else
+      begin
+        if CompareFn(PrevItem, Item) > 0 then
+          raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem.Value +  '''' +
+                                      ' > ''' + Item.Value + '''' )
+        else if StableSort and
+                ( CompareFn(PrevItem, Item) = 0 ) and
                 ( PrevItem.Sequence >= Item.Sequence ) then
           raise ESortTestError.Create('SortCheck Stability Error: ' +
                                       'Value = ''' + Item.Value + ''', ' +
@@ -453,6 +624,7 @@ end;
 
 class procedure TTestObject.SortCheck(const List: TList<TTestObject>;
                                       const ListSize: Integer;
+                                      const CompareFn: TComparison<TTestObject>;
                                       const StableSort: Boolean);
 var
   Item: TTestObject;
@@ -473,11 +645,11 @@ begin
       end
       else
       begin
-        if PrevItem.Value > Item.Value then
+        if CompareFn(PrevItem, Item) > 0 then
           raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
                                       ' > ' + IntToStr(Item.Value))
         else if StableSort and
-                ( PrevItem.Value = Item.Value ) and
+                ( CompareFn(PrevItem, Item) = 0 ) and
                 ( PrevItem.Sequence >= Item.Sequence ) then
           raise ESortTestError.Create('SortCheck Stability Error: ' +
                                       'Value = ' + IntToStr(Item.Value) + ', ' +
@@ -521,6 +693,7 @@ end;
 
 class procedure TTestInterfaceObject.SortCheck(const List: TList<ITestInterface>;
                                                const ListSize: Integer;
+                                               const CompareFn: TComparison<ITestInterface>;
                                                const StableSort: Boolean);
 var
   Item: ITestInterface;
@@ -541,11 +714,11 @@ begin
       end
       else
       begin
-        if PrevItem.Value > Item.Value then
+        if CompareFn(PrevItem, Item) > 0 then
           raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
                                       ' > ' + IntToStr(Item.Value))
         else if StableSort and
-                ( PrevItem.Value = Item.Value ) and
+                ( CompareFn(PrevItem, Item) = 0 ) and
                 ( PrevItem.Sequence >= Item.Sequence ) then
           raise ESortTestError.Create('SortCheck Stability Error: ' +
                                       'Value = ' + IntToStr(Item.Value) + ', ' +

@@ -28,6 +28,7 @@ type
     procedure FormCreate(Sender: TObject);
   private
     procedure TrimAndSortMemoBox(const ASortCompare: TComparison<string>);
+    procedure SortMemoBoxUsingReleaseAndReturn(const ASortCompare: TComparison<string>);
   end;
 
 var
@@ -59,6 +60,7 @@ begin
   Result := Random(2) * 2 - 1;
 end;
 
+// This is an example of sorting a TList<>
 procedure TSortTestForm.TrimAndSortMemoBox(const ASortCompare: TComparison<string>);
 var
   StringList: TList<string>;
@@ -77,6 +79,29 @@ begin
       MemoBox.Lines.Add(Str);
   finally
     StringList.Free;
+  end;
+end;
+
+// This is an examle of sorting without using a TList<>,
+// by creating a StrataSort object, then using Release, RunSort and Return.
+procedure TSortTestForm.SortMemoBoxUsingReleaseAndReturn(const ASortCompare: TComparison<string>);
+var
+  Sorter: TStrataSort<string>;
+  Str: string;
+begin
+  Sorter := TStrataSort<string>.Create(ASortCompare);
+  try
+    for Str in MemoBox.Lines do
+    begin
+      if Trim(Str) <> '' then
+        Sorter.SortRelease(Trim(Str));
+    end;
+    Sorter.RunSort;
+    MemoBox.Clear;
+    while not Sorter.Eof do
+      MemoBox.Lines.Add(Sorter.SortReturn);
+  finally
+    Sorter.Free;
   end;
 end;
 
@@ -100,7 +125,7 @@ end;
 
 procedure TSortTestForm.SortByLengthButtonClick(Sender: TObject);
 begin
-  TrimAndSortMemoBox(CompareLength);
+  SortMemoBoxUsingReleaseAndReturn(CompareLength);
 end;
 
 procedure TSortTestForm.ShuffleButtonClick(Sender: TObject);
