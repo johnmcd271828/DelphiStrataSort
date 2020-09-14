@@ -41,6 +41,20 @@ begin
   SequenceProc(ValueArray, Count);
   if Count < MaxCount then
   begin
+    // We create new sequences by adding a value to the end of an existing sequence.
+    // We can add a value that we have used previously,
+    // a value that is greater than all the existing values,
+    // a value that is smaller than all the existing values,
+    // or a value that is in-between existing values.
+
+    for I := 0 to UniqueCount - 1 do
+    begin
+      // Add a value which is equal to one of the existing values to the end of the sequence.
+      ValueArray[Count] := UniqueArray[I];
+      CreateSequences(ValueArray, Count + 1, UniqueArray, UniqueCount, MaxCount, SequenceProc);
+    end;
+
+    // Add a value which is less than any of the existing values to the end of the sequence.
     NewValue := 1 shl ( MaxCount - Count - 1 );
     ValueArray[Count] := NewValue;
     UniqueArray[UniqueCount] := NewValue;
@@ -48,9 +62,7 @@ begin
 
     for I := 0 to UniqueCount - 1 do
     begin
-      ValueArray[Count] := UniqueArray[I];
-      CreateSequences(ValueArray, Count + 1, UniqueArray, UniqueCount, MaxCount, SequenceProc);
-
+      // Add a value which is a little more than one of the existing values to the end of the sequence.
       NewValue := UniqueArray[I] + ( 1 shl ( MaxCount - Count - 1 ) );
       ValueArray[Count] := NewValue;
       UniqueArray[UniqueCount] := NewValue;

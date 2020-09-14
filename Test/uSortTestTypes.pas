@@ -247,7 +247,7 @@ var
 begin
   RandSeed := 12345678;
   List.Capacity := ListSize;
-  for Index := 0 to ListSize - 1 do
+  for Index := 1 to ListSize do
   begin
     List.Add(CreateItemFn(Random(ListSize), Index));
   end;
@@ -260,7 +260,7 @@ var
   Index: Integer;
 begin
   List.Capacity := ListSize;
-  for Index := 0 to ListSize - 1 do
+  for Index := 1 to ListSize do
   begin
     List.Add(CreateItemFn(Index, Index));
   end;
@@ -273,9 +273,9 @@ var
   Index: Integer;
 begin
   List.Capacity := ListSize;
-  for Index := 0 to ListSize - 1 do
+  for Index := 1 to ListSize do
   begin
-    List.Add(CreateItemFn(ListSize - Index - 1, Index));
+    List.Add(CreateItemFn(ListSize - Index + 1, Index));
   end;
 end;
 
@@ -288,15 +288,15 @@ var
 begin
   List.Capacity := ListSize;
   TargetIndex := ListSize div 10;
-  for Index := 0 to ListSize - 1 do
+  for Index := 1 to ListSize do
   begin
     if ( Index = TargetIndex ) or
        ( Index = 2 * TargetIndex ) or
        ( Index = 3 * TargetIndex ) or
-       ( Index = ListSize - TargetIndex - 1 ) or
-       ( Index = ListSize - 2 * TargetIndex - 1 ) or
-       ( Index = ListSize - 3 * TargetIndex - 1 ) then
-      List.Add(CreateItemFn(ListSize - Index - 1, Index))
+       ( Index = ListSize - TargetIndex) or
+       ( Index = ListSize - 2 * TargetIndex ) or
+       ( Index = ListSize - 3 * TargetIndex ) then
+      List.Add(CreateItemFn(ListSize - Index, Index))
     else
       List.Add(CreateItemFn(Index, Index));
   end;
@@ -309,9 +309,9 @@ var
   Index: Integer;
 begin
   List.Capacity := ListSize;
-  for Index := 0 to ListSize - 1 do
+  for Index := 1 to ListSize do
   begin
-    List.Add(CreateItemFn(3 - Index mod 4, Index));
+    List.Add(CreateItemFn(4 - Index mod 4, Index));
   end;
 end;
 
