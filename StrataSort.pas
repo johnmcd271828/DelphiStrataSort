@@ -71,18 +71,20 @@ type
     StackTop: Integer;
     TopSortStackItem: TSortStackItem;    // TopSortStackItem is null before RunSort and assigned after.
     procedure Clear;
-    procedure GetNext;
-    function  GetCurrent: T;
-    function  GetEof: Boolean;
+    procedure GetNext; inline;
+    function  GetCurrent: T; inline;
+    function  GetEof: Boolean; inline;
+    procedure SortRelease(const Item: T);
+    function  SortReturn: T; inline;
     property Current: T read GetCurrent;
   public
     constructor Create; overload;  deprecated 'SortCompare or SortComparer parameter is required.';
     constructor Create(const ASortCompare: TComparison<T>); overload;
     constructor Create(const ASortComparer: IComparer<T>); overload;
     destructor Destroy; override;
-    procedure SortRelease(const Item: T);
+    procedure Release(const Item: T); inline;
     procedure RunSort;
-    function  SortReturn: T;
+    function  Return: T; inline;
     procedure Sort(const AList: TList<T>); overload;
     procedure Sort(const ASourceList: TList<T>;
                    const ADestinationList: TList<T>); overload;
@@ -272,9 +274,18 @@ begin
   FirstSortStackItem.AddSingleItem(Item);
 end;
 
+procedure TStrataSort<T>.Release(const Item: T);
+begin
+  if Assigned(TopSortStackItem) then
+    raise ESortError.Create('StrataSort: Release called after RunSort.');
+  SortRelease(Item);
+end;
+
 // This method sets values in preparation for the sorted items to be retrieved.
 procedure TStrataSort<T>.RunSort;
 begin
+  if Assigned(TopSortStackItem) then
+    raise ESortError.Create('StrataSort: RunSort called twice.');
   TopSortStackItem := SortStack[StackTop];
   TopSortStackItem.GetFirst;
 end;
@@ -301,6 +312,13 @@ function TStrataSort<T>.SortReturn: T;
 begin
   Result := Current;
   GetNext;
+end;
+
+function  TStrataSort<T>.Return: T;
+begin
+  if not Assigned(TopSortStackItem) then
+    raise ESortError.Create('StrataSort: RunSort must be called before Return.');
+  Result := SortReturn;
 end;
 
 // Sort a list into the specified order.

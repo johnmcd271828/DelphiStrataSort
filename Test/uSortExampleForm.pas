@@ -94,12 +94,12 @@ begin
     for Str in MemoBox.Lines do
     begin
       if Trim(Str) <> '' then
-        Sorter.SortRelease(Trim(Str));
+        Sorter.Release(Trim(Str));
     end;
     Sorter.RunSort;
     MemoBox.Clear;
     while not Sorter.Eof do
-      MemoBox.Lines.Add(Sorter.SortReturn);
+      MemoBox.Lines.Add(Sorter.Return);
   finally
     Sorter.Free;
   end;
