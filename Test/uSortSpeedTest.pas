@@ -10,15 +10,6 @@ uses
   StrataSort, uSortTestTypes;
 
 type
-  TLoadListProc<T> = reference to procedure(const CreateItemFn: TCreateItemFn<T>;
-                                            const List: TList<T>;
-                                            const ListSize: Integer);
-  TSortProc<T> = reference to procedure(const List: TList<T>;
-                                        const CompareFn: TComparison<T>);
-  TSortCheckProc<T> = reference to procedure(const List: TList<T>;
-                                             const ListSize: Integer;
-                                             const StableSort: Boolean);
-
   TSortSpeedTestForm = class(TForm)
     Panel1: TPanel;
     Panel2: TPanel;
@@ -207,7 +198,6 @@ var
   CountingCompareFn: TComparison<T>;
   StopWatch: TStopWatch;
 begin
-  RandSeed := 12345678;
   List := CreateListFn;
   try
     LoadListProc(CreateItemFn, List, ListSize);
@@ -228,14 +218,13 @@ begin
                      IntToStr(GetCompareCount) + TAB +
                      IntToStr(SizeOf(Pointer) * 8));
     if Assigned(SortCheckProc) then
-      SortCheckProc(List, ListSize, StableSort)
+      SortCheckProc(List, ListSize, CompareFn, StableSort)
     else if List.Count <> ListSize then
       raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
                                   ', ListSize = ' + IntToStr(ListSize));
   finally
     List.Free;
   end;
-
 end;
 
 procedure TSortSpeedTestForm.TestBigLists<T>(const ListSize: Integer;
