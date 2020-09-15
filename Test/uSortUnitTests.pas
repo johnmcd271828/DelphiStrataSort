@@ -277,16 +277,16 @@ begin
   try
     for I := 1 to 14 do
     begin
-      Sorter.SortRelease(TSortItem.Create(I*5 mod 7, I));
+      Sorter.Release(TSortItem.Create(I*5 mod 7, I));
     end;
     Sorter.RunSort;
     for I := 0 to 6 do
     begin
       Check(not Sorter.Eof, 'TestReleaseSortReturn premature Eof');
-      ReturnItem1 := Sorter.SortReturn;
+      ReturnItem1 := Sorter.Return;
       CheckEquals(I, ReturnItem1.Key, 'ReturnItem1 Order Error');
       Check(not Sorter.Eof, 'TestReleaseSortReturn premature Eof');
-      ReturnItem2 := Sorter.SortReturn;
+      ReturnItem2 := Sorter.Return;
       CheckEquals(I, ReturnItem2.Key, 'ReturnItem2 Order Error');
       Check(ReturnItem1.Seq < ReturnItem2.Seq, 'ReturnItem Sequence Error');
     end;
