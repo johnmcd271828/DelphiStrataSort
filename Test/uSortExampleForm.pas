@@ -1,3 +1,6 @@
+// Copyright: John McDonald 2020
+//
+
 unit uSortExampleForm;
 
 //  This is a simple example of using the Sort function.
