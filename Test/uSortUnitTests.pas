@@ -1,3 +1,6 @@
+// Copyright: John McDonald 2020
+//
+
 unit uSortUnitTests;
 
 //  Tests for class TStrataSort.

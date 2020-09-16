@@ -1,3 +1,6 @@
+// Copyright: John McDonald 2020
+//
+
 unit uSortTestTypes;
 
 // This contains record, class and interface types used to test sort routines.

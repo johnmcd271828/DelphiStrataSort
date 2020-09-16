@@ -1,3 +1,6 @@
+// Copyright: John McDonald 2020
+//
+
 unit uSequenceGenerator;
 
 interface
@@ -8,7 +11,7 @@ type
 
 // This will generate every significantly different list of integers of
 // every length up to MaxCount length.
-// For example, if MaxCount = 3, it will test:
+// For example, if MaxCount = 3, it will test sequences equivalent to:
 // (), (1), (1,1), (1,2), (2,1),
 // (1,1,1), (1,1,2), (1,2,1), (2,1,1), (1,2,2), (2,1,2), (2,2,1),
 // (1,2,3), (1,3,2), (2,1,3), (2,3,1), (3,1,2), (3,2,1)
@@ -16,13 +19,27 @@ type
 // It won't generate (2,2,2) because that is the same as (1,1,1),
 // it won't generate (2,2,3) because that is the same as (1,1,2).
 //
-// When MaxCount =  8, it runs 598,445 tests and takes about 3 seconds to run on B7.
-// When MaxCount =  9, it runs 7,685,706 tests and takes about 30 seconds to run on B7.
-// When MaxCount = 10, it runs 109,933,269 tests and takes about 9 minutes to run on B7.
+// The actual sequences generated for MaxCount = 3 are
+// (), (4), (4,4), (4,6), (4,2)
+// (4,4,4), (4,4,5), (4,6,4), (4,2,2), (4,6,6), (4,2,4), (4,4,1)
+// (4,6,7), (4,6,5), (4,2,5), (4,6,1), (4,2,3), (4,2,1)
+// but these are equivalent to the sequences above for MaxCount = 3.
 //
-// SequenceProc will be called for each sequence,
-// - the sequence is in the first Count values of its ValueArray argument.
-//
+// When MaxCount =  8, it generates 598,445 sequences which take about 3 seconds to sort on my test PC.
+// When MaxCount =  9, it generates 7,685,706 sequences which take about 30 seconds to sort on my test PC.
+// When MaxCount = 10, it generates 109,933,269 sequences which take about 9 minutes to sort on my test PC.
+
+/// <summary>
+/// This will generate every significantly different list of integers of
+/// every length up to MaxCount length.
+/// </summary>
+/// <param name="SequenceProc">
+/// A procedure to be called for each sequence
+/// - the sequence will be the first Count values of its ValueArray argument.
+/// </param>
+/// <param name="MaxCount">
+/// The maximum length of a sequence.
+/// </param>
 procedure GenerateSequences(const SequenceProc: TSequenceProc;
                             const MaxCount: Integer);
 
@@ -46,6 +63,9 @@ begin
     // a value that is greater than all the existing values,
     // a value that is smaller than all the existing values,
     // or a value that is in-between existing values.
+    //
+    // The values are initially spaced far apart, so that we can add
+    // later values in between previously generated values.
 
     for I := 0 to UniqueCount - 1 do
     begin
