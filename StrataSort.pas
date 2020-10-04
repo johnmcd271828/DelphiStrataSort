@@ -135,10 +135,8 @@ end;
 // This should only be called for the first SortStackItem in the SortStack.
 procedure TStrataSort<T>.TSortStackItem.AddSingleItem(const Item: T);
 begin
-  Assert(PrevStackItem = nil, 'AddSingleItem: Should only be called on first SortStackItem.');
-  Assert(FCount = 0, 'AddSingleItem: Count should be 0.');
   SortItems[0] := Item;
-  Inc(FCount);
+  FCount := 1;
 end;
 
 /// This will set Current, FIndex and Eof.

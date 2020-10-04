@@ -4,6 +4,10 @@
 unit uSortExampleForm;
 
 //  This is a simple example of using the Sort function.
+//  It's just intended to show the syntax required to use StrataSort.
+//
+//  If a lot of data is put into the memo, sorting the memo will be slow
+//  because of the time required to reload the memo.
 
 interface
 
