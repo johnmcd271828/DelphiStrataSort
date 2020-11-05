@@ -10,7 +10,7 @@ unit StrataSort;
 interface
 
 uses
-  SysUtils, Generics.Defaults, Generics.Collections;
+  SysUtils, System.Classes, Generics.Defaults, Generics.Collections;
 
 type
   /// <summary>
@@ -54,6 +54,7 @@ type
       property Eof: Boolean read FEof;    // Eof is only valid after GetFirst or GetNext has been called.
     end;
 
+  private
     /// <summary>
     /// This record type is just used to allow the sort to work with an IComparer<T>.
     /// </summary>
@@ -88,19 +89,22 @@ type
     procedure Sort(const AList: TList<T>); overload;
     procedure Sort(const ASourceList: TList<T>;
                    const ADestinationList: TList<T>); overload;
-    class procedure Sort(const AList: TList<T>;
-                         const ASortCompare: TComparison<T>); overload;
-    class procedure Sort(const AList: TList<T>;
-                         const ASortComparer: IComparer<T>); overload;
-    class procedure Sort(const ASourceList: TList<T>;
-                         const ADestinationList: TList<T>;
-                         const ASortCompare: TComparison<T>); overload;
-    class procedure Sort(const ASourceList: TList<T>;
-                         const ADestinationList: TList<T>;
-                         const ASortComparer: IComparer<T>); overload;
     property Eof: Boolean read GetEof;
   end;
 
+  TStrataSort = class
+  public
+    class procedure Sort<T>(const AList: TList<T>;
+                            const ASortCompare: TComparison<T>); overload;
+    class procedure Sort<T>(const AList: TList<T>;
+                            const ASortComparer: IComparer<T>); overload;
+    class procedure Sort<T>(const ASourceList: TList<T>;
+                            const ADestinationList: TList<T>;
+                            const ASortCompare: TComparison<T>); overload;
+    class procedure Sort<T>(const ASourceList: TList<T>;
+                            const ADestinationList: TList<T>;
+                            const ASortComparer: IComparer<T>); overload;
+  end;
 
 type
   ESortError = class(Exception);
@@ -407,8 +411,11 @@ begin
   inherited;
 end;
 
+
+{ TStrataSort }
+
 // Sort a list into the specified order.
-class procedure TStrataSort<T>.Sort(const AList: TList<T>;
+class procedure TStrataSort.Sort<T>(const AList: TList<T>;
                                     const ASortCompare: TComparison<T>);
 var
   StrataSort: TStrataSort<T>;
@@ -421,13 +428,14 @@ begin
   end;
 end;
 
-class procedure TStrataSort<T>.Sort(const AList: TList<T>;
+class procedure TStrataSort.Sort<T>(const AList: TList<T>;
                                     const ASortComparer: IComparer<T>);
 begin
-  Sort(AList, TComparerInterfaceAdapter.Create(ASortComparer).Compare);
+  Sort<T>(AList,
+          TStrataSort<T>.TComparerInterfaceAdapter.Create(ASortComparer).Compare);
 end;
 
-class procedure TStrataSort<T>.Sort(const ASourceList: TList<T>;
+class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
                                     const ADestinationList: TList<T>;
                                     const ASortCompare: TComparison<T>);
 var
@@ -441,12 +449,12 @@ begin
   end;
 end;
 
-class procedure TStrataSort<T>.Sort(const ASourceList: TList<T>;
+class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
                                     const ADestinationList: TList<T>;
                                     const ASortComparer: IComparer<T>);
 begin
-  Sort(ASourceList, ADestinationList,
-       TComparerInterfaceAdapter.Create(ASortComparer).Compare);
+  Sort<T>(ASourceList, ADestinationList,
+          TStrataSort<T>.TComparerInterfaceAdapter.Create(ASortComparer).Compare);
 end;
 
 end.

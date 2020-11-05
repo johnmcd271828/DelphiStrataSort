@@ -29,7 +29,7 @@ object SortSpeedTestForm: TSortSpeedTestForm
     DesignSize = (
       934
       193)
-    object Panel2: TPanel
+    object ListSizePanel: TPanel
       Left = 0
       Top = 0
       Width = 185
@@ -65,13 +65,13 @@ object SortSpeedTestForm: TSortSpeedTestForm
         TabOrder = 0
       end
     end
-    object Panel3: TPanel
-      Left = 185
+    object ItemTypePanel: TPanel
+      Left = 370
       Top = 0
       Width = 185
       Height = 193
       Anchors = [akLeft, akTop, akBottom]
-      TabOrder = 1
+      TabOrder = 2
       object Label2: TLabel
         Left = 12
         Top = 12
@@ -164,13 +164,13 @@ object SortSpeedTestForm: TSortSpeedTestForm
         OnClick = ItemTypeClearButtonClick
       end
     end
-    object Panel4: TPanel
-      Left = 370
+    object ListSequencePanel: TPanel
+      Left = 185
       Top = 0
       Width = 185
       Height = 193
       Anchors = [akLeft, akTop, akBottom]
-      TabOrder = 2
+      TabOrder = 1
       object Label3: TLabel
         Left = 12
         Top = 12
@@ -253,7 +253,7 @@ object SortSpeedTestForm: TSortSpeedTestForm
         OnClick = ListTypeClearButtonClick
       end
     end
-    object Panel5: TPanel
+    object SortTypePanel: TPanel
       Left = 555
       Top = 0
       Width = 185
@@ -312,7 +312,7 @@ object SortSpeedTestForm: TSortSpeedTestForm
         OnClick = SortTypeClearButtonClick
       end
     end
-    object Panel7: TPanel
+    object PlatformPanel: TPanel
       Left = 740
       Top = 0
       Width = 193

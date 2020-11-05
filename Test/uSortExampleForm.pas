@@ -80,7 +80,7 @@ begin
       if Trim(Str) <> '' then
         StringList.Add(Trim(Str));
     end;
-    TStrataSort<string>.Sort(StringList, ASortCompare);
+    TStrataSort.Sort<string>(StringList, ASortCompare);
     MemoBox.Clear;
     for Str in StringList do
       MemoBox.Lines.Add(Str);
