@@ -15,8 +15,8 @@ uses
 type
   TSortSpeedTestForm = class(TForm)
     Panel1: TPanel;
-    Panel2: TPanel;
-    Panel3: TPanel;
+    ListSizePanel: TPanel;
+    ItemTypePanel: TPanel;
     Label1: TLabel;
     Label2: TLabel;
     IntegerItemCheckBox: TCheckBox;
@@ -25,14 +25,14 @@ type
     StringRecordCheckBox: TCheckBox;
     ObjectItemCheckBox: TCheckBox;
     InterfaceItemCheckBox: TCheckBox;
-    Panel4: TPanel;
+    ListSequencePanel: TPanel;
     Label3: TLabel;
     RandomListCheckBox: TCheckBox;
     SortedListCheckBox: TCheckBox;
     ReversedListCheckBox: TCheckBox;
     AlmostSortedCheckBox: TCheckBox;
     FourValueListCheckBox: TCheckBox;
-    Panel5: TPanel;
+    SortTypePanel: TPanel;
     Label4: TLabel;
     StrataSortCheckBox: TCheckBox;
     QuickSortCheckBox: TCheckBox;
@@ -48,7 +48,7 @@ type
     SortTypeClearButton: TButton;
     WriteResultsButton: TButton;
     ClearButton: TButton;
-    Panel7: TPanel;
+    PlatformPanel: TPanel;
     Label5: TLabel;
     ExePlatformDisplay: TLabel;
     procedure ItemTypeAllButtonClick(Sender: TObject);
@@ -68,6 +68,7 @@ type
     procedure DisplayUserError(const Msg: string;
                                const Control: TWinControl = nil);
     function  FormatElapsedTime(const StopWatch: TStopWatch): string;
+    function  FormatListSize(const ListSize: Integer): string;
     procedure WriteSpeedResultsToFile(const FileName: string);
 
     function  MakeCountingCompare<T>(const CompareFn: TComparison<T>;
@@ -78,30 +79,28 @@ type
     procedure QuickSortProc<T>(const List: TList<T>;
                                const CompareFn: TComparison<T>);
 
-    procedure TestBigLists<T>(const ListSize: Integer;
+    procedure TestListSort<T>(const ListSize: Integer;
+                              const GenerateListValues: TGenerateListValuesProc;
+                              const ListDescription: string;
                               const CreateItemFn: TCreateItemFn<T>;
                               const CreateListFn: TCreateListFn<T>;
                               const CompareFn: TComparison<T>;
                               const SortCheckProc: TSortCheckProc<T>;
-                              const LoadListProc: TLoadListProc<T>;
-                              const ListDescription: string;
                               const SortProc: TSortProc<T>;
                               const SortDescription: string;
                               const StableSort: Boolean); overload;
-    procedure TestBigLists<T>(const ListSize: Integer;
-                              const CreateItemFn: TCreateItemFn<T>;
-                              const CreateListFn: TCreateListFn<T>;
-                              const CompareFn: TComparison<T>;
-                              const SortCheckProc: TSortCheckProc<T>;
-                              const LoadListProc: TLoadListProc<T>;
-                              const ListDescription: string);  overload;
-    procedure TestBigLists<T>(const ListSize: Integer;
+    procedure TestListSort<T>(const ListSize: Integer;
+                              const GenerateListValues: TGenerateListValuesProc;
+                              const ListDescription: string;
                               const CreateItemFn: TCreateItemFn<T>;
                               const CreateListFn: TCreateListFn<T>;
                               const CompareFn: TComparison<T>;
                               const SortCheckProc: TSortCheckProc<T>); overload;
-    procedure TestBigLists(const ListSize: Integer); overload;
-    procedure TestBigLists(const ListSizeList: TList<Integer>); overload;
+    procedure TestListSort(const ListSize: Integer;
+                           const GenerateListValues: TGenerateListValuesProc;
+                           const ListDescription: string); overload;
+    procedure TestListSort(const ListSize: Integer); overload;
+    procedure TestListSort(const ListSizeList: TList<Integer>); overload;
   public
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
@@ -133,6 +132,12 @@ end;
 function TSortSpeedTestForm.FormatElapsedTime(const StopWatch: TStopWatch): string;
 begin
   Result := Format('%.3n', [StopWatch.Elapsed.TotalSeconds]) + ' seconds';
+end;
+
+function TSortSpeedTestForm.FormatListSize(const ListSize: Integer): string;
+begin
+  // To get thousands separators, we need to convert ListSize to a double, and use %.0n formatting.
+  Result := Format('%.0n', [ListSize + 0.0]);
 end;
 
 procedure TSortSpeedTestForm.WriteSpeedResultsToFile(const FileName: string);
@@ -175,7 +180,7 @@ end;
 procedure TSortSpeedTestForm.StrataSortProc<T>(const List: TList<T>;
                                                const CompareFn: TComparison<T>);
 begin
-  TStrataSort<T>.Sort(List, CompareFn);
+  TStrataSort.Sort<T>(List, CompareFn);
 end;
 
 procedure TSortSpeedTestForm.QuickSortProc<T>(const List: TList<T>;
@@ -185,13 +190,13 @@ begin
 end;
 
 
-procedure TSortSpeedTestForm.TestBigLists<T>(const ListSize: Integer;
+procedure TSortSpeedTestForm.TestListSort<T>(const ListSize: Integer;
+                                             const GenerateListValues: TGenerateListValuesProc;
+                                             const ListDescription: string;
                                              const CreateItemFn: TCreateItemFn<T>;
                                              const CreateListFn: TCreateListFn<T>;
                                              const CompareFn: TComparison<T>;
                                              const SortCheckProc: TSortCheckProc<T>;
-                                             const LoadListProc: TLoadListProc<T>;
-                                             const ListDescription: string;
                                              const SortProc: TSortProc<T>;
                                              const SortDescription: string;
                                              const StableSort: Boolean);
@@ -203,14 +208,14 @@ var
 begin
   List := CreateListFn;
   try
-    LoadListProc(CreateItemFn, List, ListSize);
+    TTestAssistant.LoadList<T>(GenerateListValues, CreateItemFn, List, ListSize);
     CountingCompareFn := MakeCountingCompare<T>(CompareFn, GetCompareCount);
 
     StopWatch := TStopWatch.StartNew;
     SortProc(List, CountingCompareFn);
     StopWatch.Stop;
     Display(SortDescription + '. ' +
-            ListDescription  + ' of ' + IntToStr(ListSize) + ' ' +
+            ListDescription  + ' of ' + FormatListSize(ListSize) + ' ' +
             GetTypeName(TypeInfo(T)) + ' Items in ' +
             FormatElapsedTime(StopWatch) + '.   ' +
             IntToStr(GetCompareCount) + ' compares.');
@@ -230,95 +235,102 @@ begin
   end;
 end;
 
-procedure TSortSpeedTestForm.TestBigLists<T>(const ListSize: Integer;
-                                             const CreateItemFn: TCreateItemFn<T>;
-                                             const CreateListFn: TCreateListFn<T>;
-                                             const CompareFn: TComparison<T>;
-                                             const SortCheckProc: TSortCheckProc<T>;
-                                             const LoadListProc: TLoadListProc<T>;
-                                             const ListDescription: string);
-begin
-  if StrataSortCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    LoadListProc, ListDescription,
-                    StrataSortProc<T>, 'StrataSort', True);
-  if QuickSortCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    LoadListProc, ListDescription,
-                    QuickSortProc<T>, 'QuickSort', False);
-end;
-
-procedure TSortSpeedTestForm.TestBigLists<T>(const ListSize: Integer;
+procedure TSortSpeedTestForm.TestListSort<T>(const ListSize: Integer;
+                                             const GenerateListValues: TGenerateListValuesProc;
+                                             const ListDescription: string;
                                              const CreateItemFn: TCreateItemFn<T>;
                                              const CreateListFn: TCreateListFn<T>;
                                              const CompareFn: TComparison<T>;
                                              const SortCheckProc: TSortCheckProc<T>);
 begin
-  if RandomListCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    TTestAssistant.LoadRandomList<T>, 'Random List');
-  if SortedListCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    TTestAssistant.LoadSortedList<T>, 'Sorted List');
-  if ReversedListCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    TTestAssistant.LoadReversedList<T>, 'Reversed List');
-  if AlmostSortedCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    TTestAssistant.LoadAlmostSortedList<T>, 'Almost Sorted List');
-  if FourValueListCheckBox.Checked then
-    TestBigLists<T>(ListSize, CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
-                    TTestAssistant.LoadFourValueList<T>, 'Four Value List');
+  if StrataSortCheckBox.Checked then
+    TestListSort<T>(ListSize,
+                    GenerateListValues, ListDescription,
+                    CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
+                    StrataSortProc<T>, 'StrataSort', True);
+  if QuickSortCheckBox.Checked then
+    TestListSort<T>(ListSize,
+                    GenerateListValues, ListDescription,
+                    CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
+                    QuickSortProc<T>, 'QuickSort', False);
 end;
 
-procedure TSortSpeedTestForm.TestBigLists(const ListSize: Integer);
+procedure TSortSpeedTestForm.TestListSort(const ListSize: Integer;
+                                          const GenerateListValues: TGenerateListValuesProc;
+                                          const ListDescription: string);
 begin
   if IntegerItemCheckBox.Checked then
-    TestBigLists<Integer>(ListSize,
+    TestListSort<Integer>(ListSize,
+                          GenerateListValues,
+                          ListDescription,
                           TTestAssistant.CreateIntegerTestItem,
                           TTestAssistant.CreateTList<Integer>,
                           TTestAssistant.CompareInteger,
                           TTestAssistant.IntegerSortCheck);
   if StringItemCheckBox.Checked then
-    TestBigLists<string>(ListSize,
+    TestListSort<string>(ListSize,
+                         GenerateListValues,
+                         ListDescription,
                          TTestAssistant.CreateStringTestItem,
                          TTestAssistant.CreateTList<string>,
                          CompareText,
                          TTestAssistant.StringSortCheck);
   if IntegerRecordCheckBox.Checked then
-    TestBigLists<TTestIntegerRecord>(ListSize,
+    TestListSort<TTestIntegerRecord>(ListSize,
+                                     GenerateListValues,
+                                     ListDescription,
                                      TTestIntegerRecord.CreateTestItem,
                                      TTestAssistant.CreateTList<TTestIntegerRecord>,
                                      TTestIntegerRecord.Compare,
                                      TTestIntegerRecord.SortCheck);
   if StringRecordCheckBox.Checked then
-    TestBigLists<TTestStringRecord>(ListSize,
+    TestListSort<TTestStringRecord>(ListSize,
+                                    GenerateListValues,
+                                    ListDescription,
                                     TTestStringRecord.CreateTestItem,
                                     TTestAssistant.CreateTList<TTestStringRecord>,
                                     TTestStringRecord.Compare,
                                     TTestStringRecord.SortCheck);
   if ObjectItemCheckBox.Checked then
-    TestBigLists<TTestObject>(ListSize,
+    TestListSort<TTestObject>(ListSize,
+                              GenerateListValues,
+                              ListDescription,
                               TTestObject.CreateTestItem,
                               TTestAssistant.CreateTObjectList<TTestObject>,
                               TTestObject.Compare,
                               TTestObject.SortCheck);
   if InterfaceItemCheckBox.Checked then
-    TestBigLists<ITestInterface>(ListSize,
+    TestListSort<ITestInterface>(ListSize,
+                                 GenerateListValues,
+                                 ListDescription,
                                  TTestInterfaceObject.CreateTestItem,
                                  TTestAssistant.CreateTList<ITestInterface>,
                                  TTestInterfaceObject.Compare,
                                  TTestInterfaceObject.SortCheck);
 end;
 
-procedure TSortSpeedTestForm.TestBigLists(const ListSizeList: TList<Integer>);
+procedure TSortSpeedTestForm.TestListSort(const ListSize: Integer);
+begin
+  if RandomListCheckBox.Checked then
+    TestListSort(ListSize, TTestAssistant.RandomListValues, 'Random List');
+  if SortedListCheckBox.Checked then
+    TestListSort(ListSize, TTestAssistant.SortedListValues, 'Sorted List');
+  if ReversedListCheckBox.Checked then
+    TestListSort(ListSize, TTestAssistant.ReversedListValues, 'Reversed List');
+  if AlmostSortedCheckBox.Checked then
+    TestListSort(ListSize, TTestAssistant.AlmostSortedListValues, 'Almost Sorted List');
+  if FourValueListCheckBox.Checked then
+    TestListSort(ListSize, TTestAssistant.FourValueListValues, 'Four Value List');
+end;
+
+procedure TSortSpeedTestForm.TestListSort(const ListSizeList: TList<Integer>);
 var
   ListSize: Integer;
 begin
   Display('Start SpeedTest');
   try
     for ListSize in ListSizeList do
-      TestBigLists(ListSize);
+      TestListSort(ListSize);
   except
     on E: Exception do
     begin
@@ -436,7 +448,7 @@ begin
                   QuickSortCheckBox.Checked ) then
       DisplayUserError('At least one Sort Type must be selected', StrataSortCheckBox)
     else
-      TestBigLists(ListSizeList);
+      TestListSort(ListSizeList);
 
   finally
     ListSizeList.Free;

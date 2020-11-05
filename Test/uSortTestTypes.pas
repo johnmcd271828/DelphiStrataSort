@@ -17,15 +17,19 @@ unit uSortTestTypes;
 interface
 
 uses
-  System.SysUtils, System.Generics.Defaults, System.Generics.Collections;
+  System.SysUtils, System.Classes, System.Generics.Defaults, System.Generics.Collections;
 
 function CompareInt(const Left, Right: Integer): Integer;
 
 type
+  TProcessValueAndSeqProc = reference to procedure(const AValue: Integer;
+                                                   const ASequence: Integer);
+  TGenerateListValuesProc = reference to procedure(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;     // <<<< List Value Generator
+                                                   const ListSize: Integer);
   TCreateListFn<T> = reference to function: TList<T>;
   TCreateItemFn<T> = reference to function(const AValue: Integer;
                                            const ASequence: Integer): T;
-  TLoadListProc<T> = reference to procedure(const CreateItemFn: TCreateItemFn<T>;
+  TLoadListProc<T> = reference to procedure(const ProcessValueAndSeq: TProcessValueAndSeqProc;
                                             const List: TList<T>;
                                             const ListSize: Integer);
   TSortProc<T> = reference to procedure(const List: TList<T>;
@@ -65,22 +69,24 @@ type
                                     const CompareFn: TComparison<string>;
                                     const StableSort: Boolean);
 
-    class procedure LoadRandomList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                      const List: TList<T>;
-                                      const ListSize: Integer);
-    class procedure LoadSortedList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                      const List: TList<T>;
-                                      const ListSize: Integer);
-    class procedure LoadReversedList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                        const List: TList<T>;
+    class procedure RandomListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                     const ListSize: Integer);
+    class procedure SortedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                     const ListSize: Integer);
+    class procedure ReversedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                       const ListSize: Integer);
+    class procedure AlmostSortedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                           const ListSize: Integer);
+    class procedure FourValueListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
                                         const ListSize: Integer);
-    class procedure LoadAlmostSortedList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                            const List: TList<T>;
-                                            const ListSize: Integer);
-    class procedure LoadFourValueList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                         const List: TList<T>;
-                                         const ListSize: Integer);
+    class procedure SingleValueListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                          const ListSize: Integer);
+    class procedure LoadList<T>(const GenerateListValues: TGenerateListValuesProc;
+                                const CreateItemFn: TCreateItemFn<T>;
+                                const List: TList<T>;
+                                const ListSize: Integer);
   end;
+
 
   /// <summary>
   /// A record type containing no reference counted items.
@@ -323,77 +329,69 @@ var
   PrevItem: string;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  if List.Count <> ListSize then
+    raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
+                                ', ListSize = ' + IntToStr(ListSize));
 
-    PrevItem := '';
-    IsFirstItem := True;
-    for Item in List do
+  PrevItem := '';
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
-      begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem + '''' +
-                                      ' > ''' + Item + '''');
-      end;
-      PrevItem := Item;
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem + '''' +
+                                    ' > ''' + Item + '''');
     end;
+    PrevItem := Item;
+  end;
 end;
 
 
-class procedure TTestAssistant.LoadRandomList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                                 const List: TList<T>;
-                                                 const ListSize: Integer);
+class procedure TTestAssistant.RandomListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                const ListSize: Integer);
 var
   Index: Integer;
 begin
   RandSeed := 12345678;
-  List.Capacity := ListSize;
   for Index := 1 to ListSize do
   begin
-    List.Add(CreateItemFn(Random(ListSize), Index));
+    ProcessValueAndSeqProc(Random(ListSize), Index);
   end;
 end;
 
-class procedure TTestAssistant.LoadSortedList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                                 const List: TList<T>;
-                                                 const ListSize: Integer);
+class procedure TTestAssistant.SortedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                const ListSize: Integer);
 var
   Index: Integer;
 begin
-  List.Capacity := ListSize;
   for Index := 1 to ListSize do
   begin
-    List.Add(CreateItemFn(Index, Index));
+    ProcessValueAndSeqProc(Index, Index);
   end;
 end;
 
-class procedure TTestAssistant.LoadReversedList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                                   const List: TList<T>;
-                                                   const ListSize: Integer);
+class procedure TTestAssistant.ReversedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                  const ListSize: Integer);
 var
   Index: Integer;
 begin
-  List.Capacity := ListSize;
   for Index := 1 to ListSize do
   begin
-    List.Add(CreateItemFn(ListSize - Index + 1, Index));
+    ProcessValueAndSeqProc(ListSize - Index + 1, Index);
   end;
 end;
 
-class procedure TTestAssistant.LoadAlmostSortedList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                                       const List: TList<T>;
-                                                       const ListSize: Integer);
+class procedure TTestAssistant.AlmostSortedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                      const ListSize: Integer);
 var
   Index: Integer;
   TargetIndex: Integer;
 begin
-  List.Capacity := ListSize;
   TargetIndex := ListSize div 10;
   for Index := 1 to ListSize do
   begin
@@ -403,25 +401,47 @@ begin
        ( Index = ListSize - TargetIndex) or
        ( Index = ListSize - 2 * TargetIndex ) or
        ( Index = ListSize - 3 * TargetIndex ) then
-      List.Add(CreateItemFn(ListSize - Index, Index))
+      ProcessValueAndSeqProc(ListSize - Index, Index)
     else
-      List.Add(CreateItemFn(Index, Index));
+      ProcessValueAndSeqProc(Index, Index);
   end;
 end;
 
-class procedure TTestAssistant.LoadFourValueList<T>(const CreateItemFn: TCreateItemFn<T>;
-                                                    const List: TList<T>;
-                                                    const ListSize: Integer);
+class procedure TTestAssistant.FourValueListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                   const ListSize: Integer);
 var
   Index: Integer;
 begin
-  List.Capacity := ListSize;
   for Index := 1 to ListSize do
   begin
-    List.Add(CreateItemFn(4 - Index mod 4, Index));
+    ProcessValueAndSeqProc(4 - Index mod 4, Index);
   end;
 end;
 
+class procedure TTestAssistant.SingleValueListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                     const ListSize: Integer);
+var
+  Index: Integer;
+begin
+  for Index := 1 to ListSize do
+  begin
+    ProcessValueAndSeqProc(5, Index);
+  end;
+end;
+
+class procedure TTestAssistant.LoadList<T>(const GenerateListValues: TGenerateListValuesProc;
+                                           const CreateItemFn: TCreateItemFn<T>;
+                                           const List: TList<T>;
+                                           const ListSize: Integer);
+begin
+  List.Capacity := ListSize;
+  GenerateListValues(procedure(const AValue: Integer;
+                               const ASequence: Integer)
+                     begin
+                       List.Add(CreateItemFn(AValue, ASequence));
+                     end,
+                     ListSize);
+end;
 
 { TTestIntegerRecord }
 

@@ -29,6 +29,7 @@ object SortTestForm: TSortTestForm
     ParentFont = False
     ScrollBars = ssVertical
     TabOrder = 1
+    WordWrap = False
   end
   object ButtonPanel: TPanel
     Left = 0

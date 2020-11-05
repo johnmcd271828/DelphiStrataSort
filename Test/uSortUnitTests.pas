@@ -101,8 +101,10 @@ const
 begin
   List := TList<Integer>.Create;
   try
-    TTestAssistant.LoadRandomList<Integer>(TTestAssistant.CreateIntegerTestItem, List, ListSize);
-    TStrataSort<Integer>.Sort(List, TTestAssistant.CompareInteger);
+    TTestAssistant.LoadList<Integer>(TTestAssistant.RandomListValues,
+                                     TTestAssistant.CreateIntegerTestItem,
+                                     List, ListSize);
+    TStrataSort.Sort<Integer>(List, TTestAssistant.CompareInteger);
     TTestAssistant.IntegerSortCheck(List, ListSize, TTestAssistant.CompareInteger, True);
   finally
     List.Free;
@@ -117,8 +119,10 @@ const
 begin
   List := TList<Byte>.Create;
   try
-    TTestAssistant.LoadRandomList<Byte>(TTestAssistant.CreateByteTestItem, List, ListSize);
-    TStrataSort<Byte>.Sort(List, TTestAssistant.CompareByte);
+    TTestAssistant.LoadList<Byte>(TTestAssistant.RandomListValues,
+                                  TTestAssistant.CreateByteTestItem,
+                                  List, ListSize);
+    TStrataSort.Sort<Byte>(List, TTestAssistant.CompareByte);
     TTestAssistant.ByteSortCheck(List, ListSize, TTestAssistant.CompareByte, True);
   finally
     List.Free;
@@ -133,8 +137,10 @@ const
 begin
   List := TList<string>.Create;
   try
-    TTestAssistant.LoadRandomList<string>(TTestAssistant.CreateStringTestItem, List, ListSize);
-    TStrataSort<string>.Sort(List, CompareText);
+    TTestAssistant.LoadList<string>(TTestAssistant.RandomListValues,
+                                    TTestAssistant.CreateStringTestItem,
+                                    List, ListSize);
+    TStrataSort.Sort<string>(List, CompareText);
     TTestAssistant.StringSortCheck(List, ListSize, CompareText, True);
   finally
     List.Free;
@@ -149,8 +155,10 @@ const
 begin
   List := TObjectList<TTestObject>.Create;
   try
-    TTestAssistant.LoadRandomList<TTestObject>(TTestObject.CreateTestItem, List, ListSize);
-    TStrataSort<TTestObject>.Sort(List, TTestObject.Compare);
+    TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+                                         TTestObject.CreateTestItem,
+                                         List, ListSize);
+    TStrataSort.Sort<TTestObject>(List, TTestObject.Compare);
     TTestObject.SortCheck(List, ListSize, TTestObject.Compare, True);
   finally
     List.Free;
@@ -165,8 +173,10 @@ const
 begin
   List := TList<ITestInterface>.Create;
   try
-    TTestAssistant.LoadRandomList<ITestInterface>(TTestInterfaceObject.CreateTestItem, List, ListSize);
-    TStrataSort<ITestInterface>.Sort(List, TTestInterfaceObject.Compare);
+    TTestAssistant.LoadList<ITestInterface>(TTestAssistant.RandomListValues,
+                                            TTestInterfaceObject.CreateTestItem,
+                                            List, ListSize);
+    TStrataSort.Sort<ITestInterface>(List, TTestInterfaceObject.Compare);
     TTestInterfaceObject.SortCheck(List, ListSize, TTestInterfaceObject.Compare, True);
   finally
     List.Free;
@@ -181,8 +191,10 @@ const
 begin
   List := TList<TTestIntegerRecord>.Create;
   try
-    TTestAssistant.LoadRandomList<TTestIntegerRecord>(TTestIntegerRecord.CreateTestItem, List, ListSize);
-    TStrataSort<TTestIntegerRecord>.Sort(List, TTestIntegerRecord.Compare);
+    TTestAssistant.LoadList<TTestIntegerRecord>(TTestAssistant.RandomListValues,
+                                                TTestIntegerRecord.CreateTestItem,
+                                                List, ListSize);
+    TStrataSort.Sort<TTestIntegerRecord>(List, TTestIntegerRecord.Compare);
     TTestIntegerRecord.SortCheck(List, ListSize, TTestIntegerRecord.Compare, True);
   finally
     List.Free;
@@ -197,8 +209,10 @@ const
 begin
   List := TList<TTestStringRecord>.Create;
   try
-    TTestAssistant.LoadRandomList<TTestStringRecord>(TTestStringRecord.CreateTestItem, List, ListSize);
-    TStrataSort<TTestStringRecord>.Sort(List, TTestStringRecord.Compare);
+    TTestAssistant.LoadList<TTestStringRecord>(TTestAssistant.RandomListValues,
+                                               TTestStringRecord.CreateTestItem,
+                                               List, ListSize);
+    TStrataSort.Sort<TTestStringRecord>(List, TTestStringRecord.Compare);
     TTestStringRecord.SortCheck(List, ListSize, TTestStringRecord.Compare, True);
   finally
     List.Free;
@@ -213,8 +227,10 @@ const
 begin
   List := TList<TTestManagedRecord>.Create;
   try
-    TTestAssistant.LoadRandomList<TTestManagedRecord>(TTestManagedRecord.CreateTestItem, List, ListSize);
-    TStrataSort<TTestManagedRecord>.Sort(List, TTestManagedRecord.Compare);
+    TTestAssistant.LoadList<TTestManagedRecord>(TTestAssistant.RandomListValues,
+                                                TTestManagedRecord.CreateTestItem,
+                                                List, ListSize);
+    TStrataSort.Sort<TTestManagedRecord>(List, TTestManagedRecord.Compare);
     TTestManagedRecord.SortCheck(List, ListSize, TTestManagedRecord.Compare, True);
   finally
     List.Free;
@@ -233,8 +249,10 @@ begin
   try
     DestinationList := TObjectList<TTestObject>.Create(False);
     try
-      TTestAssistant.LoadRandomList<TTestObject>(TTestObject.CreateTestItem, SourceList, ListSize);
-      TStrataSort<TTestObject>.Sort(SourceList, DestinationList, TTestObject.Compare);
+      TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+                                           TTestObject.CreateTestItem,
+                                           SourceList, ListSize);
+      TStrataSort.Sort<TTestObject>(SourceList, DestinationList, TTestObject.Compare);
       TTestObject.SortCheck(DestinationList, ListSize, TTestObject.Compare, True);
     finally
       DestinationList.Free;
@@ -256,9 +274,11 @@ begin
   try
     DestinationList := TList<ITestInterface>.Create;
     try
-      TTestAssistant.LoadRandomList<ITestInterface>(TTestInterfaceObject.CreateTestItem, SourceList, ListSize);
+      TTestAssistant.LoadList<ITestInterface>(TTestAssistant.RandomListValues,
+                                              TTestInterfaceObject.CreateTestItem,
+                                              SourceList, ListSize);
       SortComparer := TComparer<ITestInterface>.Construct(TTestInterfaceObject.Compare);
-      TStrataSort<ITestInterface>.Sort(SourceList, DestinationList, SortComparer);
+      TStrataSort.Sort<ITestInterface>(SourceList, DestinationList, SortComparer);
       TTestInterfaceObject.SortCheck(DestinationList, ListSize, TTestInterfaceObject.Compare, True);
     finally
       DestinationList.Free;
@@ -305,21 +325,26 @@ var
   Sorter: TStrataSort<TTestObject>;
   List: TObjectList<TTestObject>;
 const
-  ListSize: Integer = 1000;
+  FirstListSize: Integer = 3000;
+  SecondListSize: Integer = 1000;
 begin
   Sorter := TStrataSort<TTestObject>.Create(TTestObject.Compare);
   try
     List := TObjectList<TTestObject>.Create;
     try
-      TTestAssistant.LoadRandomList<TTestObject>(TTestObject.CreateTestItem , List, ListSize);
+      TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+                                           TTestObject.CreateTestItem,
+                                           List, FirstListSize);
       Sorter.Sort(List);
-      TTestObject.SortCheck(List, ListSize, TTestObject.Compare, True);
+      TTestObject.SortCheck(List, FirstListSize, TTestObject.Compare, True);
 
       List.Clear;
 
-      TTestAssistant.LoadFourValueList<TTestObject>(TTestObject.CreateTestItem , List, ListSize);
+      TTestAssistant.LoadList<TTestObject>(TTestAssistant.FourValueListValues,
+                                           TTestObject.CreateTestItem,
+                                           List, SecondListSize);
       Sorter.Sort(List);
-      TTestObject.SortCheck(List, ListSize, TTestObject.Compare, True);
+      TTestObject.SortCheck(List, SecondListSize, TTestObject.Compare, True);
     finally
       List.Free;
     end;
@@ -342,7 +367,7 @@ begin
       SortList.Add(TSortItem.Create(ValueArray[I], I));
     end;
 
-    TStrataSort<TSortItem>.Sort(SortList, CompareSortItem);
+    TStrataSort.Sort<TSortItem>(SortList, CompareSortItem);
 
     TSortItem.SortCheck(SortList, Count);
   finally
