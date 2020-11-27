@@ -117,13 +117,14 @@ constructor TStrataSort<T>.TSortStackItem.Create(const ACapacity: Integer;
                                                  const APrevStackItem: TSortStackItem;
                                                  const ASortCompare: TComparison<T>);
 begin
+  inherited Create;
   SortCompare := ASortCompare;
   PrevStackItem := APrevStackItem;
   SetLength(SortItems, ACapacity);
   FCount := 0;
   FIndex := -1;
   FCurrent := Default(T);
-  FEof := true;
+  FEof := True;
 end;
 
 procedure TStrataSort<T>.TSortStackItem.Clear;
@@ -131,7 +132,7 @@ begin
   FCount := 0;
   FIndex := -1;
   FCurrent := Default(T);
-  FEof := true;
+  FEof := True;
   if Assigned(PrevStackItem) then
     PrevStackItem.Clear;
 end;
@@ -326,11 +327,10 @@ end;
 // Sort a list into the specified order.
 procedure TStrataSort<T>.Sort(const AList: TList<T>);
 type
-  arrayofT = array of T;
+  TArrayofT = array of T;
 var
-  Item: T;
   Index: Integer;
-  InternalList: arrayofT;
+  InternalList: TArrayofT;
 begin
   Clear;
   try
@@ -338,7 +338,7 @@ begin
     // object reference via the Items property will result in objects being destroyed.
     // To prevent this happening while we are loading sorted items back into the list,
     // we access the internal list via the List property.
-    InternalList := arrayofT(AList.List);
+    InternalList := TArrayofT(AList.List);
 
     for Index := 0 to AList.Count - 1 do
       SortRelease(InternalList[Index]);
