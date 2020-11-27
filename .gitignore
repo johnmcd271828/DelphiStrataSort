@@ -57,6 +57,10 @@
 *.tvsconfig
 *.dsk
 
+# Output folders
+Win32/
+Win64/
+
 # Delphi history and backups
 __history/
 __recovery/
