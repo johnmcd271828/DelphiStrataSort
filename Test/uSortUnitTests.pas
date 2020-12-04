@@ -18,6 +18,9 @@ type
     SequenceTestCount: Integer;
     procedure SequenceTest(const ValueArray: TArray<Integer>;
                            const Count: Integer);
+    procedure TestFailSafe(const GenerateListValues: TGenerateListValuesProc;
+                           const ListSize: Integer;
+                           const TriggerCount: Int64);
   published
     procedure TestSortIntegers;
     procedure TestSortBytes;
@@ -31,6 +34,15 @@ type
     procedure TestSortInterfaceListToInterfaceListComparer;
     procedure TestReleaseSortReturn;
     procedure TestSortReuse;
+    procedure TestFailSafe1;
+    procedure TestFailSafe2;
+    procedure TestFailSafe3;
+    procedure TestFailSafe4;
+    procedure TestFailSafe5;
+    procedure TestFailSafe6;
+    procedure TestFailSafe7;
+    procedure TestFailSafe8;
+    procedure TestFailSafe9;
     procedure TestSequences;
   end;
 
@@ -374,6 +386,114 @@ begin
     SortList.Free;
   end;
   Inc(SequenceTestCount);
+end;
+
+
+procedure TSortUnitTests.TestFailSafe(const GenerateListValues: TGenerateListValuesProc;
+                                      const ListSize: Integer;
+                                      const TriggerCount: Int64);
+var
+  List: TObjectList<TTestObject>;
+  FailingCompare: TComparison<TTestObject>;
+begin
+  // Initially List.OwnsObjects will be false to prevent double frees when
+  // testing code that is not fail safe.
+  // List.OwnsObjects will be set back to true when we have established
+  // that the list contains no duplicates.
+  List := TObjectList<TTestObject>.Create(False);
+  try
+    TTestAssistant.LoadList<TTestObject>(GenerateListValues,
+                                         TTestObject.CreateTestItem,
+                                         List, ListSize);
+    FailingCompare := TTestAssistant.MakeFailingCompare<TTestObject>(TTestObject.Compare, TriggerCount);
+    try
+      TStrataSort.Sort<TTestObject>(List, FailingCompare);
+      raise ESortTestError.Create('ETriggeredException was expected, not found.');
+    except
+      on ETriggeredException do
+      begin
+        // This exception is expected.
+      end;
+    end;
+    TTestObject.CheckListContainsAllObjects(List, ListSize);
+    List.OwnsObjects := True;
+  finally
+    List.Free;
+  end;
+end;
+
+
+// Without the FailSafe recovery code in StrataSort, it is possible that a
+// faulty CompareFn can result in a situation where a list contains duplicate
+// entries and is missing other entries. If the list is a TObjectList<T> with
+// OwnsObjects = True, this can cause double Frees and memory leaks.
+// The TestFailSafe tests will test that the FailSafe recovery code is working.
+//
+// To create the situation where a list would contain duplicate entries
+// without the FailSafe recovery code, the compare function has to raise
+// an exception after the sorter has started loading the sorted items back
+// into the list. This can be done be by creating a FailingCompare that will
+// throw an exception on the nth compare, where suitable values for n can be
+// found in the following table.
+//
+// For the following lists, the exception should be triggered between the values given:
+//
+// ListType                  ListSize     Trigger between
+// ReversedListValues          1023        4131 and 5110
+// ReversedListValues          1024        4134 and 5120
+// ReversedListValues          1025        situation cannot occur.
+// ReversedListValues           657        2791 and 2947
+// ReversedListValues           695        2890 and 3141
+// AlternatingListValues       1023        5926 and 7675
+// AlternatingListValues       1024        5929 and 7679
+// AlternatingListValues       1025        situation cannot occur.
+// AlternatingListValues        657        4108 and 4895
+// AlternatingListValues        695        4233 and 5130
+// ReverseAllButLastListValues 1025        5123 and 6144
+
+procedure TSortUnitTests.TestFailSafe1;
+begin
+  TestFailSafe(TTestAssistant.ReversedListValues, 1023, 4200);
+end;
+
+procedure TSortUnitTests.TestFailSafe2;
+begin
+  TestFailSafe(TTestAssistant.ReversedListValues, 1024, 4220);
+end;
+
+procedure TSortUnitTests.TestFailSafe3;
+begin
+  TestFailSafe(TTestAssistant.ReversedListValues, 657, 2800);
+end;
+
+procedure TSortUnitTests.TestFailSafe4;
+begin
+  TestFailSafe(TTestAssistant.ReversedListValues, 695, 3000);
+end;
+
+procedure TSortUnitTests.TestFailSafe5;
+begin
+  TestFailSafe(TTestAssistant.AlternatingListValues, 1023, 7000);
+end;
+
+procedure TSortUnitTests.TestFailSafe6;
+begin
+  TestFailSafe(TTestAssistant.AlternatingListValues, 1024, 6000);
+end;
+
+procedure TSortUnitTests.TestFailSafe7;
+begin
+  TestFailSafe(TTestAssistant.AlternatingListValues, 657, 4500);
+end;
+
+procedure TSortUnitTests.TestFailSafe8;
+begin
+  TestFailSafe(TTestAssistant.AlternatingListValues, 695, 4800);
+end;
+
+procedure TSortUnitTests.TestFailSafe9;
+begin
+  TestFailSafe(TTestAssistant.ReverseAllButLastListValues, 1025, 5140);
 end;
 
 

@@ -122,12 +122,13 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\StrataSort.pas"/>
+        <DCCReference Include="uSortTestTypes.pas"/>
+        <DCCReference Include="uCompareCounter.pas"/>
         <DCCReference Include="uSortSpeedTest.pas">
             <Form>SortSpeedTestForm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="..\StrataSort.pas"/>
-        <DCCReference Include="uSortTestTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

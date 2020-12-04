@@ -2,9 +2,10 @@ program SortSpeedTest;
 
 uses
   Vcl.Forms,
-  uSortSpeedTest in 'uSortSpeedTest.pas' {SortSpeedTestForm},
   StrataSort in '..\StrataSort.pas',
-  uSortTestTypes in 'uSortTestTypes.pas';
+  uSortTestTypes in 'uSortTestTypes.pas',
+  uCompareCounter in 'uCompareCounter.pas',
+  uSortSpeedTest in 'uSortSpeedTest.pas' {SortSpeedTestForm};
 
 {$R *.res}
 

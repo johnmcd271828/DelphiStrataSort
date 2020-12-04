@@ -10,7 +10,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Graphics,
   Vcl.ExtCtrls, Generics.Defaults, Generics.Collections,
-  StrataSort, uSortTestTypes;
+  StrataSort, uSortTestTypes, uCompareCounter;
 
 type
   TSortSpeedTestForm = class(TForm)
@@ -70,9 +70,6 @@ type
     function  FormatElapsedTime(const StopWatch: TStopWatch): string;
     function  FormatListSize(const ListSize: Integer): string;
     procedure WriteSpeedResultsToFile(const FileName: string);
-
-    function  MakeCountingCompare<T>(const CompareFn: TComparison<T>;
-                                     out GetCompareCount: TFunc<Int64>): TComparison<T>;
 
     procedure StrataSortProc<T>(const List: TList<T>;
                                 const CompareFn: TComparison<T>);
@@ -160,23 +157,6 @@ begin
   end;
 end;
 
-function TSortSpeedTestForm.MakeCountingCompare<T>(const CompareFn: TComparison<T>;
-                                                   out GetCompareCount: TFunc<Int64>): TComparison<T>;
-var
-  CompareCount: Int64;
-begin
-  CompareCount := 0;
-  GetCompareCount := function: Int64
-                     begin
-                       Result := CompareCount;
-                     end;
-  Result := function(const Left, Right: T): Integer
-            begin
-              Inc(CompareCount);
-              Result := CompareFn(Left, Right);
-            end;
-end;
-
 procedure TSortSpeedTestForm.StrataSortProc<T>(const List: TList<T>;
                                                const CompareFn: TComparison<T>);
 begin
@@ -202,28 +182,27 @@ procedure TSortSpeedTestForm.TestListSort<T>(const ListSize: Integer;
                                              const StableSort: Boolean);
 var
   List: TList<T>;
-  GetCompareCount: TFunc<Int64>;
-  CountingCompareFn: TComparison<T>;
+  CompareCounter: ICompareCounter<T>;
   StopWatch: TStopWatch;
 begin
   List := CreateListFn;
   try
     TTestAssistant.LoadList<T>(GenerateListValues, CreateItemFn, List, ListSize);
-    CountingCompareFn := MakeCountingCompare<T>(CompareFn, GetCompareCount);
+    CompareCounter := TCompareCounter<T>.MakeCompareCounter(CompareFn);
 
     StopWatch := TStopWatch.StartNew;
-    SortProc(List, CountingCompareFn);
+    SortProc(List, CompareCounter.Compare);
     StopWatch.Stop;
     Display(SortDescription + '. ' +
             ListDescription  + ' of ' + FormatListSize(ListSize) + ' ' +
             GetTypeName(TypeInfo(T)) + ' Items in ' +
             FormatElapsedTime(StopWatch) + '.   ' +
-            IntToStr(GetCompareCount) + ' compares.');
+            IntToStr(CompareCounter.Count) + ' compares.');
     SpeedResults.Add(SortDescription + TAB +
                      ListDescription  + TAB + IntToStr(ListSize) + TAB +
                      GetTypeName(TypeInfo(T)) + TAB +
                      Format('%g', [StopWatch.Elapsed.TotalSeconds]) + TAB +
-                     IntToStr(GetCompareCount) + TAB +
+                     IntToStr(CompareCounter.Count) + TAB +
                      IntToStr(SizeOf(Pointer) * 8));
     if Assigned(SortCheckProc) then
       SortCheckProc(List, ListSize, CompareFn, StableSort)
