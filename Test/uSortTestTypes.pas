@@ -24,7 +24,7 @@ function CompareInt(const Left, Right: Integer): Integer;
 type
   TProcessValueAndSeqProc = reference to procedure(const AValue: Integer;
                                                    const ASequence: Integer);
-  TGenerateListValuesProc = reference to procedure(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;     // <<<< List Value Generator
+  TGenerateListValuesProc = reference to procedure(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
                                                    const ListSize: Integer);
   TCreateListFn<T> = reference to function: TList<T>;
   TCreateItemFn<T> = reference to function(const AValue: Integer;
@@ -491,7 +491,7 @@ begin
   Result := function(const Left, Right: T): Integer
             begin
               Inc(CompareCount);
-              if CompareCount = TriggerCount then
+              if CompareCount >= TriggerCount then
               begin
                 raise ETriggeredException.Create('Exception raised to test FailSafe code.');
               end;

@@ -30,9 +30,16 @@ type
     procedure TestSortIntegerRecords;
     procedure TestSortStringRecords;
     procedure TestSortManagedRecords;
+    procedure TestSortObjectsUsingIComparer;
     procedure TestSortObjectListToObjectList;
     procedure TestSortInterfaceListToInterfaceListComparer;
+    procedure TestSortInterfaceListAppendToInterfaceList;
+    procedure TestSortObjectListToSameList;
     procedure TestReleaseSortReturn;
+    procedure TestReleaseSortReturnUsingIComparer;
+    procedure TestCallRunSortTwice;
+    procedure TestCallReturnBeforeRunSort;
+    procedure TestCallReleaseAfterRunSort;
     procedure TestSortReuse;
     procedure TestFailSafe1;
     procedure TestFailSafe2;
@@ -103,6 +110,7 @@ begin
   end;
 end;
 
+
 { TSortUnitTests }
 
 procedure TSortUnitTests.TestSortIntegers;
@@ -123,6 +131,7 @@ begin
   end;
 end;
 
+
 procedure TSortUnitTests.TestSortBytes;
 var
   List: TList<Byte>;
@@ -140,6 +149,7 @@ begin
     List.Free;
   end;
 end;
+
 
 procedure TSortUnitTests.TestSortStrings;
 var
@@ -159,6 +169,7 @@ begin
   end;
 end;
 
+
 procedure TSortUnitTests.TestSortObjects;
 var
   List: TObjectList<TTestObject>;
@@ -176,6 +187,7 @@ begin
     List.Free;
   end;
 end;
+
 
 procedure TSortUnitTests.TestSortInterfaces;
 var
@@ -195,6 +207,7 @@ begin
   end;
 end;
 
+
 procedure TSortUnitTests.TestSortIntegerRecords;
 var
   List: TList<TTestIntegerRecord>;
@@ -212,6 +225,7 @@ begin
     List.Free;
   end;
 end;
+
 
 procedure TSortUnitTests.TestSortStringRecords;
 var
@@ -231,6 +245,7 @@ begin
   end;
 end;
 
+
 procedure TSortUnitTests.TestSortManagedRecords;
 var
   List: TList<TTestManagedRecord>;
@@ -244,6 +259,27 @@ begin
                                                 List, ListSize);
     TStrataSort.Sort<TTestManagedRecord>(List, TTestManagedRecord.Compare);
     TTestManagedRecord.SortCheck(List, ListSize, TTestManagedRecord.Compare, True);
+  finally
+    List.Free;
+  end;
+end;
+
+
+procedure TSortUnitTests.TestSortObjectsUsingIComparer;
+var
+  List: TObjectList<TTestObject>;
+  SortComparer: IComparer<TTestObject>;
+const
+  ListSize: Integer = 1000;
+begin
+  List := TObjectList<TTestObject>.Create;
+  try
+    TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+                                         TTestObject.CreateTestItem,
+                                         List, ListSize);
+    SortComparer := TComparer<TTestObject>.Construct(TTestObject.Compare);
+    TStrataSort.Sort<TTestObject>(List, SortComparer);
+    TTestObject.SortCheck(List, ListSize, TTestObject.Compare, True);
   finally
     List.Free;
   end;
@@ -274,6 +310,7 @@ begin
   end;
 end;
 
+
 procedure TSortUnitTests.TestSortInterfaceListToInterfaceListComparer;
 var
   SourceList: TList<ITestInterface>;
@@ -301,6 +338,67 @@ begin
 end;
 
 
+procedure TSortUnitTests.TestSortInterfaceListAppendToInterfaceList;
+var
+  SourceList: TList<ITestInterface>;
+  DestinationList: TList<ITestInterface>;
+const
+  ListSize: Integer = 6;
+begin
+  SourceList := TList<ITestInterface>.Create;
+  try
+    TTestAssistant.LoadList<ITestInterface>(TTestAssistant.ReversedListValues,
+                                            TTestInterfaceObject.CreateTestItem,
+                                            SourceList, ListSize);
+    DestinationList := TList<ITestInterface>.Create;
+    try
+      DestinationList.Add(TTestInterfaceObject.CreateTestItem(8,8));
+      DestinationList.Add(TTestInterfaceObject.CreateTestItem(9,9));
+      TStrataSort.Sort<ITestInterface>(SourceList, DestinationList, TTestInterfaceObject.Compare);
+      CheckEquals(8, DestinationList.Count, ' Incorrect DestinationList.Count');
+      CheckEquals(8, DestinationList[0].Value, 'Incorrect value in DestinationList');
+      CheckEquals(9, DestinationList[1].Value, 'Incorrect value in DestinationList');
+      CheckEquals(1, DestinationList[2].Value, 'Incorrect value in DestinationList');
+      CheckEquals(2, DestinationList[3].Value, 'Incorrect value in DestinationList');
+      CheckEquals(3, DestinationList[4].Value, 'Incorrect value in DestinationList');
+      CheckEquals(4, DestinationList[5].Value, 'Incorrect value in DestinationList');
+      CheckEquals(5, DestinationList[6].Value, 'Incorrect value in DestinationList');
+      CheckEquals(6, DestinationList[7].Value, 'Incorrect value in DestinationList');
+    finally
+      DestinationList.Free;
+    end;
+  finally
+    SourceList.Free;
+  end;
+end;
+
+
+procedure TSortUnitTests.TestSortObjectListToSameList;
+var
+  List: TObjectList<TTestObject>;
+const
+  ListSize: Integer = 10;
+begin
+  List := TObjectList<TTestObject>.Create(True);
+  try
+    TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+                                         TTestObject.CreateTestItem,
+                                         List, ListSize);
+    try
+      TStrataSort.Sort<TTestObject>(List, List, TTestObject.Compare);
+      raise ESortTestError.Create('TestSortObjectListToSameList - ESortTestError expected');
+    except
+      on E: ESortError do
+      begin
+        CheckEquals('StratatSort: Source and Destination lists must not be the same.', E.Message);
+      end;
+    end;
+  finally
+    List.Free;
+  end;
+end;
+
+
 procedure TSortUnitTests.TestReleaseSortReturn;
 var
   Sorter: TStrataSort<TSortItem>;
@@ -317,15 +415,111 @@ begin
     Sorter.RunSort;
     for I := 0 to 6 do
     begin
-      Check(not Sorter.Eof, 'TestReleaseSortReturn premature Eof');
+      Check(not Sorter.Eof, 'Premature Eof');
       ReturnItem1 := Sorter.Return;
       CheckEquals(I, ReturnItem1.Key, 'ReturnItem1 Order Error');
-      Check(not Sorter.Eof, 'TestReleaseSortReturn premature Eof');
+      Check(not Sorter.Eof, 'Premature Eof');
       ReturnItem2 := Sorter.Return;
       CheckEquals(I, ReturnItem2.Key, 'ReturnItem2 Order Error');
       Check(ReturnItem1.Seq < ReturnItem2.Seq, 'ReturnItem Sequence Error');
     end;
-    Check(Sorter.Eof, 'TestReleaseSortReturn Eof expected.');
+    Check(Sorter.Eof, 'Eof expected.');
+  finally
+    Sorter.Free;
+  end;
+end;
+
+
+procedure TSortUnitTests.TestReleaseSortReturnUsingIComparer;
+var
+  SortComparer: IComparer<TSortItem>;
+  Sorter: TStrataSort<TSortItem>;
+  I: Integer;
+  ReturnItem: TSortItem;
+begin
+  SortComparer := TComparer<TSortItem>.Construct(CompareSortItem);
+  Sorter := TStrataSort<TSortItem>.Create(SortComparer);
+  try
+    for I := 1 to 7 do
+    begin
+      Sorter.Release(TSortItem.Create(I*5 mod 7, I));
+    end;
+    Sorter.RunSort;
+    for I := 0 to 6 do
+    begin
+      Check(not Sorter.Eof, 'Premature Eof');
+      ReturnItem := Sorter.Return;
+      CheckEquals(I, ReturnItem.Key, 'ReturnItem Order Error');
+    end;
+    Check(Sorter.Eof, 'Eof expected.');
+  finally
+    Sorter.Free;
+  end;
+end;
+
+
+procedure TSortUnitTests.TestCallRunSortTwice;
+var
+  Sorter: TStrataSort<TSortItem>;
+begin
+  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  try
+    Sorter.Release(TSortItem.Create(1, 1));
+    Sorter.RunSort;
+    try
+      Sorter.RunSort;
+      raise ESortTestError.Create('ESortTestError expected');
+    except
+      on E: ESortError do
+      begin
+        CheckEquals('StrataSort: RunSort called twice.', E.Message);
+      end;
+    end;
+  finally
+    Sorter.Free;
+  end;
+end;
+
+
+procedure TSortUnitTests.TestCallReturnBeforeRunSort;
+var
+  Sorter: TStrataSort<TSortItem>;
+begin
+  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  try
+    Sorter.Release(TSortItem.Create(1, 1));
+    try
+      Sorter.Return;
+      raise ESortTestError.Create('ESortTestError expected');
+    except
+      on E: ESortError do
+      begin
+        CheckEquals('StrataSort: RunSort must be called before Return.', E.Message);
+      end;
+    end;
+  finally
+    Sorter.Free;
+  end;
+end;
+
+
+procedure TSortUnitTests.TestCallReleaseAfterRunSort;
+var
+  Sorter: TStrataSort<TSortItem>;
+begin
+  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  try
+    Sorter.Release(TSortItem.Create(1, 1));
+    Sorter.RunSort;
+    try
+      Sorter.Release(TSortItem.Create(2, 2));
+      raise ESortTestError.Create('ESortTestError expected');
+    except
+      on E: ESortError do
+      begin
+        CheckEquals('StrataSort: Release called after RunSort.', E.Message);
+      end;
+    end;
   finally
     Sorter.Free;
   end;

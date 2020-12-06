@@ -48,6 +48,8 @@ type
       procedure AddSingleItem(const Item: T); inline;
       procedure GetNext;
       procedure GetFirst;
+      procedure RecoverNext;
+      procedure RecoverFirst;
       procedure LoadFromPreviousLevels;
       property Count: Integer read FCount;
       property Current: T read FCurrent;    // Eof is only valid after GetFirst or GetNext has been called.
@@ -73,10 +75,13 @@ type
     TopSortStackItem: TSortStackItem;    // TopSortStackItem is null before RunSort and assigned after.
     procedure Clear;
     procedure GetNext; inline;
+    procedure RecoverFirst;
+    procedure RecoverNext;
     function  GetCurrent: T; inline;
     function  GetEof: Boolean; inline;
     procedure SortRelease(const Item: T);
     function  SortReturn: T; inline;
+    procedure FailSafeRecovery(const AList: TList<T>);
     property Current: T read GetCurrent;
   public
     constructor Create; overload;  deprecated 'SortCompare or SortComparer parameter is required.';
@@ -195,6 +200,41 @@ begin
   GetNext;
 end;
 
+/// This method is only used to recover a list from a faulty CompareFn failing at a critical point.
+/// This code will very rarely be used.
+procedure TStrataSort<T>.TSortStackItem.RecoverNext;
+begin
+  if FIndex < Count then
+  begin
+    FCurrent := SortItems[FIndex];
+    Inc(FIndex);
+  end
+  else if Assigned(PrevStackItem) and
+          not PrevStackItem.Eof then
+  begin
+    FCurrent := PrevStackItem.Current;
+    PrevStackItem.RecoverNext;
+  end
+  else
+  begin
+    FEof := True;
+    FCurrent := Default(T);
+  end;
+end;
+
+/// This method is only used to recover a list from a faulty CompareFn failing at a critical point.
+/// This code will very rarely be used.
+procedure TStrataSort<T>.TSortStackItem.RecoverFirst;
+begin
+  if Assigned(PrevStackItem) then
+  begin
+    PrevStackItem.RecoverFirst;
+  end;
+  FIndex := 0;
+  FEof := False;
+  RecoverNext;
+end;
+
 // This method will merge all the SortStackItems from previous levels, and load them into this level.
 // It will only be called when this level is empty.
 // It will only be called when all previous levels are full, and the method will fill the sortItems array.
@@ -299,6 +339,19 @@ begin
   TopSortStackItem.GetNext;
 end;
 
+/// This method is only used to recover a list from a faulty CompareFn failing at a critical point.
+/// This code will very rarely be used.
+procedure TStrataSort<T>.RecoverFirst;
+begin
+  TopSortStackItem.RecoverFirst;
+end;
+
+/// This method is only used to recover a list from a faulty CompareFn failing at a critical point.
+procedure TStrataSort<T>.RecoverNext;
+begin
+  TopSortStackItem.RecoverNext;
+end;
+
 // This is not valid until after RunSort.
 function TStrataSort<T>.GetCurrent: T;
 begin
@@ -324,6 +377,35 @@ begin
   Result := SortReturn;
 end;
 
+// If a list is being sorted, and the CompareFn fails while the sorted values are
+// being loaded back into the list, the list may contain duplicate entries and
+// may be missing other entries.
+// If it is a TObjectList<T> with OwnsObjects = True, this can result in some
+// objects being freed twice, and other objects never being freed.
+// To prevent this, any exception that is raised while the sorted values are being
+// loaded back into the list is caught, all the objects being sorted are loaded
+// back into the list in arbitrary order by the following method, and the
+// exception is re-raised.
+// This situation will be very rare, because it requires a faulty CompareFn that
+// gets through most of the sort without failing, then fails right near the end.
+// But it is possible, and the sort should cope with it in a civilised way.
+procedure TStrataSort<T>.FailSafeRecovery(const AList: TList<T>);
+type
+  TArrayofT = array of T;
+var
+  Index: Integer;
+  InternalList: TArrayofT;
+begin
+  InternalList := TArrayofT(AList.List);
+
+  RecoverFirst;
+  for Index := 0 to AList.Count - 1 do
+  begin
+    InternalList[Index] := Current;
+    RecoverNext;
+  end;
+end;
+
 // Sort a list into the specified order.
 procedure TStrataSort<T>.Sort(const AList: TList<T>);
 type
@@ -345,13 +427,16 @@ begin
 
     RunSort;
 
-    for Index := 0 to AList.Count - 1 do
-    begin
-      Assert(not Eof, 'Sort: Premature Eof.');
-      InternalList[Index] := Current;
-      GetNext;
+    try
+      for Index := 0 to AList.Count - 1 do
+      begin
+        InternalList[Index] := Current;
+        GetNext;
+      end;
+    except
+      FailSafeRecovery(AList);
+      raise;
     end;
-    Assert(Eof, 'Sort: Eof expected.');
   finally
     Clear;
   end;
@@ -364,9 +449,7 @@ var
   Item: T;
 begin
   if ADestinationList = ASourceList then
-    raise ESortError.Create('Source and Destination lists must not be the same.');
-  if ADestinationList.Count > 0 then
-    raise ESortError.Create('Destination lists must be empty.');
+    raise ESortError.Create('StratatSort: Source and Destination lists must not be the same.');
 
   Clear;
   try
@@ -375,7 +458,7 @@ begin
 
     RunSort;
 
-    ADestinationList.Capacity := ADestinationList.Capacity + ASourceList.Count;
+    ADestinationList.Capacity := ADestinationList.Count + ASourceList.Count;
     while not Eof do
       ADestinationList.Add(SortReturn);
   finally
@@ -386,7 +469,7 @@ end;
 
 constructor TStrataSort<T>.Create;
 begin
-  raise ESortError.Create('TSorter<T>.Create - SortCompare or SortComparer parameter is required.');
+  raise ESortError.Create('TStrataSort<T>.Create: SortCompare or SortComparer parameter is required.');
 end;
 
 constructor TStrataSort<T>.Create(const ASortCompare: TComparison<T>);
