@@ -67,6 +67,10 @@ type
     procedure Display(const Msg: string);
     procedure DisplayUserError(const Msg: string;
                                const Control: TWinControl = nil);
+    function  StringMemoryEstimate: Int64;
+    function  MemoryEstimate(const ListSize: Integer): Int64; overload;
+    function  MemoryEstimate(const ListSizeList: TList<Integer>): Int64; overload;
+    function  CheckMemoryEstimate(const ListSizeList: TList<Integer>): Boolean;
     function  FormatElapsedTime(const StopWatch: TStopWatch): string;
     function  FormatListSize(const ListSize: Integer): string;
     procedure WriteSpeedResultsToFile(const FileName: string);
@@ -108,7 +112,7 @@ var
 
 implementation
 
-uses TypInfo;
+uses TypInfo, Math;
 
 {$R *.dfm}
 
@@ -124,6 +128,103 @@ begin
      Control.CanFocus then
     Control.SetFocus;
   MessageDlg(Msg, mtError, [mbOk], 0);
+end;
+
+// This returns a rough estimate of the memory required for a test string used by the SpeedTest.
+function TSortSpeedTestForm.StringMemoryEstimate: Int64;
+var
+  StringTestItem: string;
+begin
+  StringTestItem := TTestAssistant.ValueToTestString(1);
+  // Allow for overheads of string.
+  Result := 2 * SizeOf(Integer) + SizeOf(Pointer) + ByteLength(StringTestItem) + SizeOf(Char);
+  // Allow for FastMM allocation.
+  Result := ( ( Result + 15 ) div 16 ) * 16;     // Round up to the next multiple of 16.
+end;
+
+// This will return a rough estimate of the total memory required for the SortTest.
+// It includes the size of the List, any objects and strings referenced by the list,
+// and the buffers used by StrataSort.
+function TSortSpeedTestForm.MemoryEstimate(const ListSize: Integer): Int64;
+var
+  SortBufferSize: Int64;
+begin
+  if StrataSortCheckBox.Checked then
+  begin
+    SortBufferSize := 1;
+    while SortBufferSize < ListSize do
+      SortBufferSize := SortBufferSize shl 1;
+  end
+  else
+    SortBufferSize := 0;
+
+  if StringRecordCheckBox.Checked then
+    Result := ListSize * ( SizeOf(TTestStringRecord) + StringMemoryEstimate ) +
+              SortBufferSize * SizeOf(TTestStringRecord)
+  else if StringItemCheckBox.Checked then
+    Result := ListSize * ( SizeOf(Pointer) + StringMemoryEstimate ) +
+              SortBufferSize * SizeOf(Pointer)
+  else if IntegerItemCheckBox.Checked then
+    Result := ( ListSize + SortBufferSize ) * SizeOf(Integer)
+  else
+    Result := 0;
+
+  if IntegerRecordCheckBox.Checked then
+    Result := Max(Result,
+                  ( SortBufferSize + ListSize ) * SizeOf(TTestIntegerRecord));
+
+  if ObjectItemCheckBox.Checked or
+     InterfaceItemCheckBox.Checked then
+    Result := Max(Result,
+                  ListSize * ( SizeOf(Pointer) + TTestObject.InstanceSize ) +
+                  SortBufferSize * SizeOf(Pointer));
+end;
+
+function TSortSpeedTestForm.MemoryEstimate(const ListSizeList: TList<Integer>): Int64;
+var
+  ListSize: Integer;
+  MaxListSize: Integer;
+begin
+  MaxListSize := 0;
+  for ListSize in ListSizeList do
+  begin
+    if ListSize > MaxListSize then
+      MaxListSize := ListSize;
+  end;
+  Result := MemoryEstimate(MaxListSize);
+end;
+
+// This method will compare the estimated memory requirements of the SortTest with the available
+// memory and will return True if it is ok to proceed.
+// This is to prevent testers unintentionally running a speedtest that will bring their system to a halt.
+function TSortSpeedTestForm.CheckMemoryEstimate(const ListSizeList: TList<Integer>): Boolean;
+var
+  SortMemoryEstimate: Int64;
+  MemStatus: MemoryStatusEx;
+  WarningMessage: string;
+begin
+  SortMemoryEstimate := MemoryEstimate(ListSizeList);
+
+  FillChar (MemStatus, SizeOf(MemoryStatusEx), #0);
+  MemStatus.dwLength := SizeOf(MemoryStatusEx);
+  GlobalMemoryStatusEx(MemStatus);
+
+  if SortMemoryEstimate > MemStatus.ullAvailPhys then
+  begin
+    if SortMemoryEstimate > MemStatus.ullTotalPhys then
+      WarningMessage := 'which is more than the total physical memory of this system.'
+    else
+      WarningMessage := 'which is more than the physical memory available on this system.';
+    WarningMessage := 'Estimated memory required for this test is ' +
+                      Format('%.0n MB', [SortMemoryEstimate.ToDouble / 1000000]) + sLineBreak +
+                      WarningMessage + sLineBreak +
+                      'This could bring your machine to a stand-still.' + sLineBreak +
+                      sLineBreak +
+                      'Are you sure you want to proceed?';
+    Result := MessageDlg(WarningMessage, mtWarning, mbYesNo, 0) = mrYes;
+  end
+  else
+    Result := True;
 end;
 
 function TSortSpeedTestForm.FormatElapsedTime(const StopWatch: TStopWatch): string;
@@ -306,17 +407,20 @@ procedure TSortSpeedTestForm.TestListSort(const ListSizeList: TList<Integer>);
 var
   ListSize: Integer;
 begin
-  Display('Start SpeedTest');
-  try
-    for ListSize in ListSizeList do
-      TestListSort(ListSize);
-  except
-    on E: Exception do
-    begin
-      Display('SpeedTest Exception ' + E.ClassName + ': ' + E.Message);
+  if CheckMemoryEstimate(ListSizeList) then
+  begin
+    Display('Start SpeedTest');
+    try
+      for ListSize in ListSizeList do
+        TestListSort(ListSize);
+    except
+      on E: Exception do
+      begin
+        Display('SpeedTest Exception ' + E.ClassName + ': ' + E.Message);
+      end;
     end;
+    Display('End of SpeedTest');
   end;
-  Display('End of SpeedTest');
 end;
 
 constructor TSortSpeedTestForm.Create(AOwner: TComponent);

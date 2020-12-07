@@ -63,6 +63,7 @@ type
                                   const CompareFn: TComparison<Byte>;
                                   const StableSort: Boolean);
 
+    class function ValueToTestString(const AValue: Integer): string;
     class function CreateStringTestItem(const AValue: Integer;
                                         const ASequence: Integer): string;
     class procedure StringSortCheck(const List: TList<string>;
@@ -323,10 +324,15 @@ begin
     end;
 end;
 
+class function TTestAssistant.ValueToTestString(const AValue: Integer): string;
+begin
+  Result := Format('SortString%.10d', [AValue]);
+end;
+
 class function TTestAssistant.CreateStringTestItem(const AValue: Integer;
                                                    const ASequence: Integer): string;
 begin
-  Result := 'SortString' + Format('%.9d', [AValue]);
+  Result := ValueToTestString(AValue);
 end;
 
 class procedure TTestAssistant.StringSortCheck(const List: TList<string>;
@@ -570,7 +576,7 @@ end;
 class function TTestStringRecord.CreateTestItem(const AValue: Integer;
                                                 const ASequence: Integer): TTestStringRecord;
 begin
-  Result.Create('SortString' + Format('%.9d', [AValue]), ASequence);
+  Result.Create(TTestAssistant.ValueToTestString(AValue), ASequence);
 end;
 
 class function TTestStringRecord.Compare(const Left, Right: TTestStringRecord): Integer;
@@ -635,7 +641,7 @@ end;
 class function TTestManagedRecord.CreateTestItem(const AValue: Integer;
                                                  const ASequence: Integer): TTestManagedRecord;
 begin
-  Result.Create('SortString' + Format('%.9d', [AValue]), ASequence);
+  Result.Create(TTestAssistant.ValueToTestString(AValue), ASequence);
 end;
 
 class function TTestManagedRecord.Compare(const Left, Right: TTestManagedRecord): Integer;
