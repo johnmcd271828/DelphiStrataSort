@@ -552,12 +552,18 @@ begin
           raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
                                       ' > ' + IntToStr(Item.Value))
         else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ' + IntToStr(Item.Value) + ', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+                ( CompareFn(PrevItem, Item) = 0 ) then
+        begin
+          if PrevItem.Sequence = Item.Sequence then
+            raise ESortTestError.Create('SortCheck Duplicate Error: ' +
+                                        'Value = ' + IntToStr(Item.Value) + ', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence))
+          else if PrevItem.Sequence > Item.Sequence then
+            raise ESortTestError.Create('SortCheck Stability Error: ' +
+                                        'Value = ' + IntToStr(Item.Value) + ', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence) +
+                                        ' > ' + IntToStr(Item.Sequence));
+        end;
       end;
       PrevItem := Item;
     end;
@@ -610,12 +616,18 @@ begin
           raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem.Value +  '''' +
                                       ' > ''' + Item.Value + '''' )
         else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ''' + Item.Value + ''', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+                ( CompareFn(PrevItem, Item) = 0 ) then
+        begin
+          if PrevItem.Sequence = Item.Sequence then
+            raise ESortTestError.Create('SortCheck Duplicate Error: ' +
+                                        'Value = ''' + Item.Value + ''', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence))
+          else if PrevItem.Sequence > Item.Sequence then
+            raise ESortTestError.Create('SortCheck Stability Error: ' +
+                                        'Value = ''' + Item.Value + ''', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence) +
+                                        ' > ' + IntToStr(Item.Sequence));
+        end;
       end;
       PrevItem := Item;
     end;
@@ -675,12 +687,18 @@ begin
           raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem.Value +  '''' +
                                       ' > ''' + Item.Value + '''' )
         else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ''' + Item.Value + ''', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+                ( CompareFn(PrevItem, Item) = 0 ) then
+        begin
+          if PrevItem.Sequence = Item.Sequence then
+            raise ESortTestError.Create('SortCheck Duplicate Error: ' +
+                                        'Value = ''' + Item.Value + ''', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence))
+          else if PrevItem.Sequence > Item.Sequence then
+            raise ESortTestError.Create('SortCheck Stability Error: ' +
+                                        'Value = ''' + Item.Value + ''', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence) +
+                                        ' > ' + IntToStr(Item.Sequence));
+        end;
       end;
       PrevItem := Item;
     end;
@@ -734,12 +752,18 @@ begin
         raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
                                     ' > ' + IntToStr(Item.Value))
       else if StableSort and
-              ( CompareFn(PrevItem, Item) = 0 ) and
-              ( PrevItem.Sequence >= Item.Sequence ) then
-        raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                    'Value = ' + IntToStr(Item.Value) + ', ' +
-                                    'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                    ' >= ' + IntToStr(Item.Sequence));
+              ( CompareFn(PrevItem, Item) = 0 ) then
+      begin
+        if PrevItem.Sequence = Item.Sequence then
+          raise ESortTestError.Create('SortCheck Duplicate Error: ' +
+                                      'Value = ' + IntToStr(Item.Value) + ', ' +
+                                      'Seq: ' + IntToStr(PrevItem.Sequence))
+        else if PrevItem.Sequence > Item.Sequence then
+          raise ESortTestError.Create('SortCheck Stability Error: ' +
+                                      'Value = ' + IntToStr(Item.Value) + ', ' +
+                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
+                                      ' > ' + IntToStr(Item.Sequence));
+      end;
     end;
     PrevItem := Item;
   end;
@@ -840,12 +864,18 @@ begin
           raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
                                       ' > ' + IntToStr(Item.Value))
         else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ' + IntToStr(Item.Value) + ', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+                ( CompareFn(PrevItem, Item) = 0 ) then
+        begin
+          if PrevItem.Sequence = Item.Sequence then
+            raise ESortTestError.Create('SortCheck Duplicate Error: ' +
+                                        'Value = ' + IntToStr(Item.Value) + ', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence))
+          else if PrevItem.Sequence > Item.Sequence then
+            raise ESortTestError.Create('SortCheck Stability Error: ' +
+                                        'Value = ' + IntToStr(Item.Value) + ', ' +
+                                        'Seq: ' + IntToStr(PrevItem.Sequence) +
+                                        ' > ' + IntToStr(Item.Sequence));
+        end;
       end;
       PrevItem := Item;
     end;
