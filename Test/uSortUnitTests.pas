@@ -30,6 +30,7 @@ type
     procedure TestSortIntegerRecords;
     procedure TestSortStringRecords;
     procedure TestSortManagedRecords;
+    procedure TestSequences;
     procedure TestSortObjectsUsingIComparer;
     procedure TestSortObjectListToObjectList;
     procedure TestSortInterfaceListToInterfaceListComparer;
@@ -50,7 +51,6 @@ type
     procedure TestFailSafe7;
     procedure TestFailSafe8;
     procedure TestFailSafe9;
-    procedure TestSequences;
   end;
 
 implementation
@@ -262,6 +262,45 @@ begin
   finally
     List.Free;
   end;
+end;
+
+
+// This will test sorting the sequence contained in the first Count items of ValueArray.
+procedure TSortUnitTests.SequenceTest(const ValueArray: TArray<Integer>;
+                                      const Count: Integer);
+var
+  SortList: TList<TSortItem>;
+  I: Integer;
+begin
+  SortList := TList<TSortItem>.Create;
+  try
+    for I := 0 to Count - 1 do
+    begin
+      SortList.Add(TSortItem.Create(ValueArray[I], I));
+    end;
+
+    TStrataSort.Sort<TSortItem>(SortList, CompareSortItem);
+
+    TSortItem.SortCheck(SortList, Count);
+  finally
+    SortList.Free;
+  end;
+  Inc(SequenceTestCount);
+end;
+
+
+// This will test sorting every significantly different list
+// of every length up to MaxCount.
+procedure TSortUnitTests.TestSequences;
+const
+  MaxCount = 9;
+begin
+  Status(Format('Start TestSequences(%d).  This will take a while.',
+                [MaxCount]));
+  SequenceTestCount := 0;
+  TSequenceGenerator.GenerateSequences(SequenceTest, MaxCount);
+  Status(Format('End of TestSequences(%d).  %d sequences sorted.',
+                [MaxCount, SequenceTestCount]));
 end;
 
 
@@ -560,29 +599,6 @@ begin
 end;
 
 
-procedure TSortUnitTests.SequenceTest(const ValueArray: TArray<Integer>;
-                                      const Count: Integer);
-var
-  SortList: TList<TSortItem>;
-  I: Integer;
-begin
-  SortList := TList<TSortItem>.Create;
-  try
-    for I := 0 to Count - 1 do
-    begin
-      SortList.Add(TSortItem.Create(ValueArray[I], I));
-    end;
-
-    TStrataSort.Sort<TSortItem>(SortList, CompareSortItem);
-
-    TSortItem.SortCheck(SortList, Count);
-  finally
-    SortList.Free;
-  end;
-  Inc(SequenceTestCount);
-end;
-
-
 procedure TSortUnitTests.TestFailSafe(const GenerateListValues: TGenerateListValuesProc;
                                       const ListSize: Integer;
                                       const TriggerCount: Int64);
@@ -688,21 +704,6 @@ end;
 procedure TSortUnitTests.TestFailSafe9;
 begin
   TestFailSafe(TTestAssistant.ReverseAllButLastListValues, 1025, 5140);
-end;
-
-
-// This will test sorting every significantly different list
-// of every length up to MaxCount.
-procedure TSortUnitTests.TestSequences;
-const
-  MaxCount = 9;
-begin
-  Status('Start TestSequences(' + IntToStr(MaxCount) + ').  ' +
-         'This will take a while.');
-  SequenceTestCount := 0;
-  GenerateSequences(SequenceTest, MaxCount);
-  Status('End of TestSequences(' + IntToStr(MaxCount) + ').  ' +
-         IntToStr(SequenceTestCount) + ' sequences sorted.');
 end;
 
 
