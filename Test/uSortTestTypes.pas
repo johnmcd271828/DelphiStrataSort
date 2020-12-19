@@ -24,7 +24,7 @@ function CompareInt(const Left, Right: Integer): Integer;
 type
   TProcessValueAndSeqProc = reference to procedure(const AValue: Integer;
                                                    const ASequence: Integer);
-  TGenerateListValuesProc = reference to procedure(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;     // <<<< List Value Generator
+  TGenerateListValuesProc = reference to procedure(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
                                                    const ListSize: Integer);
   TCreateListFn<T> = reference to function: TList<T>;
   TCreateItemFn<T> = reference to function(const AValue: Integer;
@@ -40,11 +40,14 @@ type
                                              const StableSort: Boolean);
 
   ESortTestError = class(Exception);
+  ETriggeredException = class(Exception);
 
   TTestAssistant = class
   public
     class function CreateTList<T>: TList<T>;
     class function CreateTObjectList<T: class>: TList<T>;
+    class procedure SortListCountCheck(const ListCount: Integer;
+                                       const ExpectedCount: Integer);
 
     class function CreateIntegerTestItem(const AValue: Integer;
                                          const ASequence: Integer): Integer;
@@ -62,6 +65,7 @@ type
                                   const CompareFn: TComparison<Byte>;
                                   const StableSort: Boolean);
 
+    class function ValueToTestString(const AValue: Integer): string;
     class function CreateStringTestItem(const AValue: Integer;
                                         const ASequence: Integer): string;
     class procedure StringSortCheck(const List: TList<string>;
@@ -81,10 +85,16 @@ type
                                         const ListSize: Integer);
     class procedure SingleValueListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
                                           const ListSize: Integer);
+    class procedure AlternatingListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                          const ListSize: Integer);
+    class procedure ReverseAllButLastListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                const ListSize: Integer);
     class procedure LoadList<T>(const GenerateListValues: TGenerateListValuesProc;
                                 const CreateItemFn: TCreateItemFn<T>;
                                 const List: TList<T>;
                                 const ListSize: Integer);
+    class function MakeFailingCompare<T>(const CompareFn: TComparison<T>;
+                                         const TriggerCount: Int64): TComparison<T>;
   end;
 
 
@@ -174,6 +184,8 @@ type
                               const ListSize: Integer;
                               const CompareFn: TComparison<TTestObject>;
                               const StableSort: Boolean);
+    class procedure CheckListContainsAllObjects(const List: TList<TTestObject>;
+                                                const ListSize: Integer);
     property Value: Integer read FValue;
     property Sequence: Integer read FSequence;
   end;
@@ -230,6 +242,14 @@ begin
   Result := TObjectList<T>.Create(True);
 end;
 
+class procedure TTestAssistant.SortListCountCheck(const ListCount: Integer;
+                                                  const ExpectedCount: Integer);
+begin
+  if ListCount <> ExpectedCount then
+    raise ESortTestError.CreateFmt('SortCheck Count Error: List.Count = %d, Expected Count = %d',
+                                   [ListCount, ExpectedCount]);
+end;
+
 class function TTestAssistant.CreateIntegerTestItem(const AValue: Integer;
                                                     const ASequence: Integer): Integer;
 begin
@@ -250,26 +270,24 @@ var
   PrevItem: Integer;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  SortListCountCheck(List.Count, ListSize);
 
-    PrevItem := 0;
-    IsFirstItem := True;
-    for Item in List do
+  PrevItem := 0;
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
-      begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem) +
-                                      ' > ' + IntToStr(Item));
-      end;
-      PrevItem := Item;
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: %d > %d',
+                                       [PrevItem, Item]);
     end;
+    PrevItem := Item;
+  end;
 end;
 
 class function TTestAssistant.CreateByteTestItem(const AValue: Integer;
@@ -292,32 +310,35 @@ var
   PrevItem: Byte;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  SortListCountCheck(List.Count, ListSize);
 
-    PrevItem := 0;
-    IsFirstItem := True;
-    for Item in List do
+  PrevItem := 0;
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
-      begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem) +
-                                      ' > ' + IntToStr(Item));
-      end;
-      PrevItem := Item;
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: %d > %d',
+                                       [PrevItem, Item]);
     end;
+    PrevItem := Item;
+  end;
+end;
+
+class function TTestAssistant.ValueToTestString(const AValue: Integer): string;
+begin
+  Result := Format('SortString%.10d', [AValue]);
 end;
 
 class function TTestAssistant.CreateStringTestItem(const AValue: Integer;
                                                    const ASequence: Integer): string;
 begin
-  Result := 'SortString' + Format('%.9d', [AValue]);
+  Result := ValueToTestString(AValue);
 end;
 
 class procedure TTestAssistant.StringSortCheck(const List: TList<string>;
@@ -329,9 +350,7 @@ var
   PrevItem: string;
   IsFirstItem: Boolean;
 begin
-  if List.Count <> ListSize then
-    raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                ', ListSize = ' + IntToStr(ListSize));
+  SortListCountCheck(List.Count, ListSize);
 
   PrevItem := '';
   IsFirstItem := True;
@@ -344,8 +363,8 @@ begin
     else
     begin
       if CompareFn(PrevItem, Item) > 0 then
-        raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem + '''' +
-                                    ' > ''' + Item + '''');
+        raise ESortTestError.CreateFmt('SortCheck Order Error: ''%s'' > ''%s''',
+                                       [PrevItem, Item]);
     end;
     PrevItem := Item;
   end;
@@ -384,6 +403,18 @@ begin
   begin
     ProcessValueAndSeqProc(ListSize - Index + 1, Index);
   end;
+end;
+
+class procedure TTestAssistant.ReverseAllButLastListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                           const ListSize: Integer);
+var
+  Index: Integer;
+begin
+  for Index := 1 to ListSize - 1 do
+  begin
+    ProcessValueAndSeqProc(ListSize - Index, Index);
+  end;
+  ProcessValueAndSeqProc(ListSize, ListSize);
 end;
 
 class procedure TTestAssistant.AlmostSortedListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
@@ -429,6 +460,24 @@ begin
   end;
 end;
 
+class procedure TTestAssistant.AlternatingListValues(const ProcessValueAndSeqProc: TProcessValueAndSeqProc;
+                                                     const ListSize: Integer);
+var
+  EvenSize: Integer;
+  Index: Integer;
+  KeyValue: Integer;
+begin
+  EvenSize := ( ListSize + 1 ) and ( not 1 );
+  for Index := 1 to ListSize do
+  begin
+    if Odd(Index) then
+      KeyValue := EvenSize - Index
+    else
+      KeyValue := Index;
+    ProcessValueAndSeqProc(KeyValue, Index);
+  end;
+end;
+
 class procedure TTestAssistant.LoadList<T>(const GenerateListValues: TGenerateListValuesProc;
                                            const CreateItemFn: TCreateItemFn<T>;
                                            const List: TList<T>;
@@ -441,6 +490,23 @@ begin
                        List.Add(CreateItemFn(AValue, ASequence));
                      end,
                      ListSize);
+end;
+
+class function TTestAssistant.MakeFailingCompare<T>(const CompareFn: TComparison<T>;
+                                                    const TriggerCount: Int64): TComparison<T>;
+var
+  CompareCount: Integer;
+begin
+  CompareCount := 0;
+  Result := function(const Left, Right: T): Integer
+            begin
+              Inc(CompareCount);
+              if CompareCount >= TriggerCount then
+              begin
+                raise ETriggeredException.Create('Exception raised to test FailSafe code.');
+              end;
+              Result := CompareFn(Left, Right);
+            end;
 end;
 
 { TTestIntegerRecord }
@@ -473,32 +539,33 @@ var
   PrevItem: TTestIntegerRecord;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  TTestAssistant.SortListCountCheck(List.Count, ListSize);
 
-    IsFirstItem := True;
-    for Item in List do
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: %d > %d',
+                                       [PrevItem.Value, Item.Value])
+      else if StableSort and
+              ( CompareFn(PrevItem, Item) = 0 ) then
       begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
-                                      ' > ' + IntToStr(Item.Value))
-        else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ' + IntToStr(Item.Value) + ', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+        if PrevItem.Sequence = Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Duplicate Error: Value = %d, Seq: %d',
+                                         [Item.Value, Item.Sequence])
+        else if PrevItem.Sequence > Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Stability Error: Value = %d, Seq: %d > %d',
+                                         [Item.Value, PrevItem.Sequence, Item.Sequence]);
       end;
-      PrevItem := Item;
     end;
+    PrevItem := Item;
+  end;
 end;
 
 { TTestStringRecord }
@@ -514,7 +581,7 @@ end;
 class function TTestStringRecord.CreateTestItem(const AValue: Integer;
                                                 const ASequence: Integer): TTestStringRecord;
 begin
-  Result.Create('SortString' + Format('%.9d', [AValue]), ASequence);
+  Result.Create(TTestAssistant.ValueToTestString(AValue), ASequence);
 end;
 
 class function TTestStringRecord.Compare(const Left, Right: TTestStringRecord): Integer;
@@ -531,32 +598,33 @@ var
   PrevItem: TTestStringRecord;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  TTestAssistant.SortListCountCheck(List.Count, ListSize);
 
-    IsFirstItem := True;
-    for Item in List do
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: ''%s'' > ''%s''',
+                                       [PrevItem.Value, Item.Value])
+      else if StableSort and
+              ( CompareFn(PrevItem, Item) = 0 ) then
       begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem.Value +  '''' +
-                                      ' > ''' + Item.Value + '''' )
-        else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ''' + Item.Value + ''', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+        if PrevItem.Sequence = Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Duplicate Error: Value = ''%s'', Seq: %d',
+                                         [Item.Value, Item.Sequence])
+        else if PrevItem.Sequence > Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Stability Error: Value = ''%s'', Seq: %d > %d',
+                                         [Item.Value, PrevItem.Sequence, Item.Sequence]);
       end;
-      PrevItem := Item;
     end;
+    PrevItem := Item;
+  end;
 end;
 
 { TTestManagedRecord }
@@ -579,7 +647,7 @@ end;
 class function TTestManagedRecord.CreateTestItem(const AValue: Integer;
                                                  const ASequence: Integer): TTestManagedRecord;
 begin
-  Result.Create('SortString' + Format('%.9d', [AValue]), ASequence);
+  Result.Create(TTestAssistant.ValueToTestString(AValue), ASequence);
 end;
 
 class function TTestManagedRecord.Compare(const Left, Right: TTestManagedRecord): Integer;
@@ -596,32 +664,33 @@ var
   PrevItem: TTestManagedRecord;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  TTestAssistant.SortListCountCheck(List.Count, ListSize);
 
-    IsFirstItem := True;
-    for Item in List do
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: ''%s'' > ''%s''',
+                                       [PrevItem.Value, Item.Value])
+      else if StableSort and
+              ( CompareFn(PrevItem, Item) = 0 ) then
       begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ''' + PrevItem.Value +  '''' +
-                                      ' > ''' + Item.Value + '''' )
-        else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ''' + Item.Value + ''', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+        if PrevItem.Sequence = Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Duplicate Error: Value = ''%s'', Seq: %d',
+                                         [Item.Value, Item.Sequence])
+        else if PrevItem.Sequence > Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Stability Error: Value = ''%s'', Seq: %d > %d',
+                                         [Item.Value, PrevItem.Sequence, Item.Sequence]);
       end;
-      PrevItem := Item;
     end;
+    PrevItem := Item;
+  end;
 end;
 
 { TTestObject }
@@ -654,33 +723,72 @@ var
   PrevItem: TTestObject;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  TTestAssistant.SortListCountCheck(List.Count, ListSize);
 
-    PrevItem := nil;
-    IsFirstItem := True;
-    for Item in List do
+  PrevItem := nil;
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: %d > %d',
+                                       [PrevItem.Value, Item.Value])
+      else if StableSort and
+              ( CompareFn(PrevItem, Item) = 0 ) then
       begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
-                                      ' > ' + IntToStr(Item.Value))
-        else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ' + IntToStr(Item.Value) + ', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+        if PrevItem.Sequence = Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Duplicate Error: Value = %d, Seq: %d',
+                                         [Item.Value, Item.Sequence])
+        else if PrevItem.Sequence > Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Stability Error: Value = %d, Seq: %d > %d',
+                                         [Item.Value, PrevItem.Sequence, Item.Sequence]);
       end;
-      PrevItem := Item;
     end;
+    PrevItem := Item;
+  end;
+end;
+
+class procedure TTestObject.CheckListContainsAllObjects(const List: TList<TTestObject>;
+                                                        const ListSize: Integer);
+var
+  CheckArray: TBytes;    // CheckArray[TestObject.Sequence - 1] is set to 1 if TestObject.Sequence has been seen.
+  TestObject: TTestObject;
+  ListIndex: Integer;
+  ArrayIndex: Integer;
+begin
+  //  This checks that List contains Objects with all sequences from 1 to ListSize, with no duplicates.
+  if List.Count <> ListSize then
+    raise ESortTestError.CreateFmt('CheckListContainsAllObjects Count Error: List.Count = %d, ListSize = %d',
+                                   [List.Count, ListSize]);
+  SetLength(CheckArray, ListSize);
+  for ListIndex := 0 to List.Count - 1 do
+  begin
+    TestObject := List[ListIndex];
+    if not Assigned(TestObject) then
+      raise ESortTestError.CreateFmt('CheckListContainsAllObjects Error: List contains nil object at %d',
+                                     [ListIndex]);
+    if ( TestObject.Sequence < 1 ) or
+       ( TestObject.Sequence > ListSize ) then
+      raise ESortTestError.CreateFmt('CheckListContainsAllObjects Error: Unexpected TestObject.Sequence %d at %d',
+                                     [TestObject.Sequence, ListIndex]);
+    if CheckArray[TestObject.Sequence - 1] <> 0 then
+      raise ESortTestError.CreateFmt('CheckListContainsAllObjects Error: Duplicate TestObject.Sequence %d at %d',
+                                     [TestObject.Sequence, ListIndex]);
+    CheckArray[TestObject.Sequence - 1] := 1;
+  end;
+  // The following loop isn't really necessary.
+  for ArrayIndex := 0 to ArrayIndex.Size - 1 do
+  begin
+    if CheckArray[ArrayIndex] <> 1 then
+      raise ESortTestError.CreateFmt('CheckListContainsAllObjects Error: Missing TestObject.Sequence %d',
+                                     [ArrayIndex + 1]);
+
+  end;
 end;
 
 { TTestInterfaceObject }
@@ -723,33 +831,34 @@ var
   PrevItem: ITestInterface;
   IsFirstItem: Boolean;
 begin
-    if List.Count <> ListSize then
-      raise ESortTestError.Create('SortCheck Count Error: List.Count = ' + IntToStr(List.Count) +
-                                  ', ListSize = ' + IntToStr(ListSize));
+  TTestAssistant.SortListCountCheck(List.Count, ListSize);
 
-    PrevItem := nil;
-    IsFirstItem := True;
-    for Item in List do
+  PrevItem := nil;
+  IsFirstItem := True;
+  for Item in List do
+  begin
+    if IsFirstItem then
     begin
-      if IsFirstItem then
+      IsFirstItem := False;
+    end
+    else
+    begin
+      if CompareFn(PrevItem, Item) > 0 then
+        raise ESortTestError.CreateFmt('SortCheck Order Error: %d > %d',
+                                       [PrevItem.Value, Item.Value])
+      else if StableSort and
+              ( CompareFn(PrevItem, Item) = 0 ) then
       begin
-        IsFirstItem := False;
-      end
-      else
-      begin
-        if CompareFn(PrevItem, Item) > 0 then
-          raise ESortTestError.Create('SortCheck Order Error: ' + IntToStr(PrevItem.Value) +
-                                      ' > ' + IntToStr(Item.Value))
-        else if StableSort and
-                ( CompareFn(PrevItem, Item) = 0 ) and
-                ( PrevItem.Sequence >= Item.Sequence ) then
-          raise ESortTestError.Create('SortCheck Stability Error: ' +
-                                      'Value = ' + IntToStr(Item.Value) + ', ' +
-                                      'Seq: ' + IntToStr(PrevItem.Sequence) +
-                                      ' >= ' + IntToStr(Item.Sequence));
+        if PrevItem.Sequence = Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Duplicate Error: Value = %d, Seq: %d',
+                                         [Item.Value, Item.Sequence])
+        else if PrevItem.Sequence > Item.Sequence then
+          raise ESortTestError.CreateFmt('SortCheck Stability Error: Value = %d, Seq: %d > %d',
+                                         [Item.Value, PrevItem.Sequence, Item.Sequence]);
       end;
-      PrevItem := Item;
     end;
+    PrevItem := Item;
+  end;
 end;
 
 end.
