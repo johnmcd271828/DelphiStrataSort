@@ -98,6 +98,19 @@ type
   end;
 
   TStrataSort = class
+  strict private
+    class function MakeIndexCompareFn<T>(const CompareFn: TComparison<T>;
+                                         const List: TList<T>): TComparison<Integer>;
+    class procedure LoadSortedIndexList<T>(const AIndexList: TList<Integer>;
+                                           const AList: TList<T>;
+                                           const ASortCompare: TComparison<T>);
+    class function MakeQuickSortIndexCompareFn<T>(const CompareFn: TComparison<T>;
+                                                  const List: TList<T>): TComparison<Integer>;
+    class procedure LoadQuickSortedIndexList<T>(const AIndexList: TList<Integer>;
+                                                const AList: TList<T>;
+                                                const ASortCompare: TComparison<T>);
+    class procedure ReorderListByIndex<T>(const AList: TList<T>;
+                                          const IndexList: TList<Integer>);
   public
     class procedure Sort<T>(const AList: TList<T>;
                             const ASortCompare: TComparison<T>); overload;
@@ -109,12 +122,19 @@ type
     class procedure Sort<T>(const ASourceList: TList<T>;
                             const ADestinationList: TList<T>;
                             const ASortComparer: IComparer<T>); overload;
+
+    class procedure IndexSort<T>(const AList: TList<T>;
+                                 const ASortCompare: TComparison<T>); overload;
+    class procedure IndexQuickSort<T>(const AList: TList<T>;
+                                      const ASortCompare: TComparison<T>); overload;
   end;
 
 type
   ESortError = class(Exception);
 
 implementation
+
+uses System.Math;
 
 { TStrataSort<T>.TSortStackItem }
 
@@ -538,6 +558,145 @@ class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
 begin
   Sort<T>(ASourceList, ADestinationList,
           TStrataSort<T>.TComparerInterfaceAdapter.Create(ASortComparer).Compare);
+end;
+
+
+class function TStrataSort.MakeIndexCompareFn<T>(const CompareFn: TComparison<T>;
+                                                 const List: TList<T>): TComparison<Integer>;
+begin
+  Result := function(const Left, Right: Integer): Integer
+            begin
+              Result := CompareFn(List[Left], List[Right]);
+            end;
+end;
+
+class procedure TStrataSort.LoadSortedIndexList<T>(const AIndexList: TList<Integer>;
+                                                   const AList: TList<T>;
+                                                   const ASortCompare: TComparison<T>);
+var
+  IndexCompareFn: TComparison<Integer>;
+  IndexSorter: TStrataSort<Integer>;
+  Index: Integer;
+begin
+  IndexCompareFn := MakeIndexCompareFn<T>(ASortCompare, AList);
+  IndexSorter := TStrataSort<Integer>.Create(IndexCompareFn);
+  try
+    for Index := 0 to AList.Count - 1 do
+      IndexSorter.Release(Index);
+
+    IndexSorter.RunSort;
+
+    AIndexList.Capacity := AList.Count;
+    while not IndexSorter.Eof do
+      AIndexList.Add(IndexSorter.Return);
+  finally
+    IndexSorter.Free;
+  end;
+end;
+
+// This creates a function that can be used with an unstable sort like QuickSort to implement a stable IndexSort.
+class function TStrataSort.MakeQuickSortIndexCompareFn<T>(const CompareFn: TComparison<T>;
+                                                          const List: TList<T>): TComparison<Integer>;
+begin
+  Result := function(const Left, Right: Integer): Integer
+            begin
+              Result := CompareFn(List[Left], List[Right]);
+              if Result = 0 then
+                Result := CompareValue(Left, Right);
+            end;
+end;
+
+class procedure TStrataSort.LoadQuickSortedIndexList<T>(const AIndexList: TList<Integer>;
+                                                        const AList: TList<T>;
+                                                        const ASortCompare: TComparison<T>);
+var
+  IndexCompareFn: TComparison<Integer>;
+  Index: Integer;
+begin
+  IndexCompareFn := MakeQuickSortIndexCompareFn<T>(ASortCompare, AList);
+  AIndexList.Capacity := AList.Count;
+  for Index := 0 to AList.Count - 1 do
+    AIndexList.Add(Index);
+  AIndexList.Sort(TComparer<Integer>.Construct(IndexCompareFn));
+end;
+
+class procedure TStrataSort.ReorderListByIndex<T>(const AList: TList<T>;
+                                                  const IndexList: TList<Integer>);
+type
+  TArrayofT = array of T;
+var
+  InternalList: TArrayofT;
+  StartIndex: Integer;
+  DestIndex: Integer;
+  SourceIndex: Integer;
+  SaveItem: T;
+begin
+  // We now have a list of the current index of what should be at each location.
+  // Some items could already be in their correct location.
+  // All the other items belong to a cycle of objects.
+  // There might be one cycle that includes all the out of place items, or there
+  // might be many shorter cycles.
+  // For each cycle we find, we save what is in the starting position, then work out
+  // what should be in that position. We move that item to where it should be, then
+  // find what should be in the position that we moved an item from. We continue that
+  // until we get to the position where we need the item that we saved from the starting
+  // position.
+  // This strategy means that each item only needs to be moved once, and we need very
+  // little temporary storage for this reordering.
+  InternalList := TArrayofT(AList.List);
+
+  for StartIndex := 0 to IndexList.Count - 1 do
+  begin
+    DestIndex := StartIndex;
+    SourceIndex := IndexList[DestIndex];
+    if SourceIndex <> DestIndex then
+    begin
+      SaveItem := InternalList[DestIndex];
+      while SourceIndex <> StartIndex do
+      begin
+        InternalList[DestIndex] := InternalList[SourceIndex];
+        IndexList[DestIndex] := DestIndex;
+        DestIndex := SourceIndex;
+        SourceIndex := IndexList[DestIndex];
+      end;
+      InternalList[DestIndex] := SaveItem;
+      IndexList[DestIndex] := DestIndex;
+    end;
+  end;
+end;
+
+// An index sort can be used to speed up sorting of reference counted items
+// such as Interfaces, strings, and records that contain reference counted fields.
+// StrataSort and QuickSort of reference counted items is relatively slow because
+// of the reference counting. An index sort will only move each item once or twice
+// and reduces the overheads of reference counting.
+class procedure TStrataSort.IndexSort<T>(const AList: TList<T>;
+                                         const ASortCompare: TComparison<T>);
+var
+  IndexList: TList<Integer>;
+begin
+  IndexList := TList<Integer>.Create;
+  try
+    LoadSortedIndexList<T>(IndexList, AList, ASortCompare);
+    ReorderListByIndex<T>(AList, IndexList);
+  finally
+    IndexList.Free;
+  end;
+end;
+
+// This is a stable index sort based on an unstable sort - QuickSort.
+class procedure TStrataSort.IndexQuickSort<T>(const AList: TList<T>;
+                                              const ASortCompare: TComparison<T>);
+var
+  IndexList: TList<Integer>;
+begin
+  IndexList := TList<Integer>.Create;
+  try
+    LoadQuickSortedIndexList<T>(IndexList, AList, ASortCompare);
+    ReorderListByIndex<T>(AList, IndexList);
+  finally
+    IndexList.Free;
+  end;
 end;
 
 end.
