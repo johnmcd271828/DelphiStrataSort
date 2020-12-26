@@ -299,7 +299,7 @@ object SortSpeedTestForm: TSortSpeedTestForm
         Width = 43
         Height = 25
         Caption = 'All'
-        TabOrder = 2
+        TabOrder = 4
         OnClick = SortTypeAllButtonClick
       end
       object SortTypeClearButton: TButton
@@ -308,8 +308,28 @@ object SortSpeedTestForm: TSortSpeedTestForm
         Width = 43
         Height = 25
         Caption = 'Clear'
-        TabOrder = 3
+        TabOrder = 5
         OnClick = SortTypeClearButtonClick
+      end
+      object IndexSortCheckBox: TCheckBox
+        Left = 12
+        Top = 88
+        Width = 150
+        Height = 18
+        Caption = 'IndexSort'
+        Checked = True
+        State = cbChecked
+        TabOrder = 2
+      end
+      object IndexQuickSortCheckBox: TCheckBox
+        Left = 12
+        Top = 112
+        Width = 150
+        Height = 17
+        Caption = 'IndexQuickSort'
+        Checked = True
+        State = cbChecked
+        TabOrder = 3
       end
     end
     object PlatformPanel: TPanel

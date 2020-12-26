@@ -51,6 +51,8 @@ type
     PlatformPanel: TPanel;
     Label5: TLabel;
     ExePlatformDisplay: TLabel;
+    IndexSortCheckBox: TCheckBox;
+    IndexQuickSortCheckBox: TCheckBox;
     procedure ItemTypeAllButtonClick(Sender: TObject);
     procedure ItemTypeClearButtonClick(Sender: TObject);
     procedure ListTypeAllButtonClick(Sender: TObject);
@@ -79,6 +81,10 @@ type
                                 const CompareFn: TComparison<T>);
     procedure QuickSortProc<T>(const List: TList<T>;
                                const CompareFn: TComparison<T>);
+    procedure IndexSortProc<T>(const List: TList<T>;
+                                const CompareFn: TComparison<T>);
+    procedure IndexQuickSortProc<T>(const List: TList<T>;
+                                    const CompareFn: TComparison<T>);
 
     procedure TestListSort<T>(const ListSize: Integer;
                               const GenerateListValues: TGenerateListValuesProc;
@@ -270,6 +276,18 @@ begin
   List.Sort(TComparer<T>.Construct(CompareFn));
 end;
 
+procedure TSortSpeedTestForm.IndexSortProc<T>(const List: TList<T>;
+                                              const CompareFn: TComparison<T>);
+begin
+  TStrataSort.IndexSort<T>(List, CompareFn);
+end;
+
+procedure TSortSpeedTestForm.IndexQuickSortProc<T>(const List: TList<T>;
+                                                   const CompareFn: TComparison<T>);
+begin
+  TStrataSort.IndexQuickSort<T>(List, CompareFn);
+end;
+
 
 procedure TSortSpeedTestForm.TestListSort<T>(const ListSize: Integer;
                                              const GenerateListValues: TGenerateListValuesProc;
@@ -333,6 +351,16 @@ begin
                     GenerateListValues, ListDescription,
                     CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
                     QuickSortProc<T>, 'QuickSort', False);
+  if IndexSortCheckBox.Checked then
+    TestListSort<T>(ListSize,
+                    GenerateListValues, ListDescription,
+                    CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
+                    IndexSortProc<T>, 'IndexSort', True);
+  if IndexQuickSortCheckBox.Checked then
+    TestListSort<T>(ListSize,
+                    GenerateListValues, ListDescription,
+                    CreateItemFn, CreateListFn, CompareFn, SortCheckProc,
+                    IndexQuickSortProc<T>, 'IndexQuickSort', True);
 end;
 
 procedure TSortSpeedTestForm.TestListSort(const ListSize: Integer;
@@ -480,12 +508,16 @@ procedure TSortSpeedTestForm.SortTypeAllButtonClick(Sender: TObject);
 begin
   StrataSortCheckBox.Checked := True;
   QuickSortCheckBox.Checked := True;
+  IndexSortCheckBox.Checked := True;
+  IndexQuickSortCheckBox.Checked := True;
 end;
 
 procedure TSortSpeedTestForm.SortTypeClearButtonClick(Sender: TObject);
 begin
   StrataSortCheckBox.Checked := False;
   QuickSortCheckBox.Checked := False;
+  IndexSortCheckBox.Checked := False;
+  IndexQuickSortCheckBox.Checked := False;
 end;
 
 procedure TSortSpeedTestForm.RunButtonClick(Sender: TObject);
@@ -528,7 +560,9 @@ begin
                   FourValueListCheckBox.Checked ) then
       DisplayUserError('At least one List Type must be selected', RandomListCheckBox)
     else if not ( StrataSortCheckBox.Checked or
-                  QuickSortCheckBox.Checked ) then
+                  QuickSortCheckBox.Checked or
+                  IndexSortCheckBox.Checked or
+                  IndexQuickSortCheckBox.Checked ) then
       DisplayUserError('At least one Sort Type must be selected', StrataSortCheckBox)
     else
       TestListSort(ListSizeList);
