@@ -4,7 +4,7 @@
 unit uSortUnitTests;
 
 //  Tests for class TStrataSort.
-//  Most tests raise an exception when problems are found, so there are few explicit Checks.
+//  Most tests raise an exception when a problem is found, so there are few explicit Checks.
 
 interface
 
@@ -18,6 +18,11 @@ type
     SequenceTestCount: Integer;
     procedure SequenceTest(const ValueArray: TArray<Integer>;
                            const Count: Integer);
+    procedure CompareSortedLists(const List: TObjectList<TTestObject>;
+                                 const IndexSortList: TObjectList<TTestObject>;
+                                 const IndexQuickSortList: TObjectList<TTestObject>);
+    procedure SortAndCompare(const ListSize: Integer;
+                             const GenerateListValues: TGenerateListValuesProc);
     procedure TestFailSafe(const GenerateListValues: TGenerateListValuesProc;
                            const ListSize: Integer;
                            const TriggerCount: Int64);
@@ -31,6 +36,30 @@ type
     procedure TestSortStringRecords;
     procedure TestSortManagedRecords;
     procedure TestSequences;
+    procedure CompareSortOfRandomList657;
+    procedure CompareSortOfRandomList1024;
+    procedure CompareSortOfRandomList1025;
+    procedure CompareSortOfSortedList657;
+    procedure CompareSortOfSortedList1024;
+    procedure CompareSortOfSortedList1025;
+    procedure CompareSortOfReversedList657;
+    procedure CompareSortOfReversedList1024;
+    procedure CompareSortOfReversedList1025;
+    procedure CompareSortOfAlmostSortedList657;
+    procedure CompareSortOfAlmostSortedList1024;
+    procedure CompareSortOfAlmostSortedList1025;
+    procedure CompareSortOfFourValueList657;
+    procedure CompareSortOfFourValueList1024;
+    procedure CompareSortOfFourValueList1025;
+    procedure CompareSortOfSingleValueList657;
+    procedure CompareSortOfSingleValueList1024;
+    procedure CompareSortOfSingleValueList1025;
+    procedure CompareSortOfAlternatingList657;
+    procedure CompareSortOfAlternatingList1024;
+    procedure CompareSortOfAlternatingList1025;
+    procedure CompareSortOfReverseAllButLastList657;
+    procedure CompareSortOfReverseAllButLastList1024;
+    procedure CompareSortOfReverseAllButLastList1025;
     procedure TestSortObjectsUsingIComparer;
     procedure TestSortObjectListToObjectList;
     procedure TestSortInterfaceListToInterfaceListComparer;
@@ -303,6 +332,174 @@ begin
                 [MaxCount, SequenceTestCount]));
 end;
 
+
+procedure TSortUnitTests.CompareSortedLists(const List: TObjectList<TTestObject>;
+                                            const IndexSortList: TObjectList<TTestObject>;
+                                            const IndexQuickSortList: TObjectList<TTestObject>);
+var
+  Index: Integer;
+begin
+  if List.Count <> IndexQuickSortList.Count then
+    raise ESortTestError.Create('CompareSortedLists List.Count <> IndexQuickSortList.Count.')
+  else if IndexSortList.Count <> IndexQuickSortList.Count then
+    raise ESortTestError.Create('CompareSortedLists IndexSortList.Count <> IndexQuickSortList.Count.');
+
+  for Index := 0 to List.Count - 1 do
+  begin
+    if List[Index] <> IndexQuickSortList[Index] then
+      raise ESortTestError.CreateFmt('CompareSortedLists List[%d] <> IndexQuickSortList[%d].', [Index, Index])
+    else if IndexSortList[Index] <> IndexQuickSortList[Index] then
+      raise ESortTestError.CreateFmt('CompareSortedLists IndexSortList[%d] <> IndexQuickSortList[%d].', [Index, Index]);
+  end;
+end;
+
+
+procedure TSortUnitTests.SortAndCompare(const ListSize: Integer;
+                                        const GenerateListValues: TGenerateListValuesProc);
+var
+  List: TObjectList<TTestObject>;
+  IndexSortList: TObjectList<TTestObject>;
+  IndexQuickSortList: TObjectList<TTestObject>;
+begin
+  IndexSortList := nil;
+  IndexQuickSortList := nil;
+  List := TObjectList<TTestObject>.Create;
+  try
+    TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+                                         TTestObject.CreateTestItem,
+                                         List, ListSize);
+    IndexSortList := TObjectList<TTestObject>.Create(List, False);
+    IndexQuickSortList := TObjectList<TTestObject>.Create(List, False);
+    TStrataSort.Sort<TTestObject>(List, TTestObject.Compare);
+    TStrataSort.IndexSort<TTestObject>(IndexSortList, TTestObject.Compare);
+    TStrataSort.IndexQuickSort<TTestObject>(IndexQuickSortList, TTestObject.Compare);
+    CompareSortedLists(List, IndexSortList, IndexQuickSortList);
+  finally
+    IndexSortList.Free;
+    IndexQuickSortList.Free;
+    List.Free;
+  end;
+end;
+
+procedure TSortUnitTests.CompareSortOfRandomList657;
+begin
+  SortAndCompare(657, TTestAssistant.RandomListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfRandomList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.RandomListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfRandomList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.RandomListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfSortedList657;
+begin
+  SortAndCompare(657, TTestAssistant.SortedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfSortedList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.SortedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfSortedList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.SortedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfReversedList657;
+begin
+  SortAndCompare(657, TTestAssistant.ReversedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfReversedList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.ReversedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfReversedList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.ReversedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfAlmostSortedList657;
+begin
+  SortAndCompare(657, TTestAssistant.AlmostSortedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfAlmostSortedList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.AlmostSortedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfAlmostSortedList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.AlmostSortedListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfFourValueList657;
+begin
+  SortAndCompare(657, TTestAssistant.FourValueListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfFourValueList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.FourValueListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfFourValueList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.FourValueListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfSingleValueList657;
+begin
+  SortAndCompare(657, TTestAssistant.SingleValueListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfSingleValueList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.SingleValueListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfSingleValueList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.SingleValueListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfAlternatingList657;
+begin
+  SortAndCompare(657, TTestAssistant.AlternatingListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfAlternatingList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.AlternatingListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfAlternatingList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.AlternatingListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfReverseAllButLastList657;
+begin
+  SortAndCompare(657, TTestAssistant.ReverseAllButLastListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfReverseAllButLastList1024;
+begin
+  SortAndCompare(1024, TTestAssistant.ReverseAllButLastListValues);
+end;
+
+procedure TSortUnitTests.CompareSortOfReverseAllButLastList1025;
+begin
+  SortAndCompare(1025, TTestAssistant.ReverseAllButLastListValues);
+end;
 
 procedure TSortUnitTests.TestSortObjectsUsingIComparer;
 var

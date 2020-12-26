@@ -665,11 +665,11 @@ begin
   end;
 end;
 
-// An index sort can be used to speed up sorting of reference counted items
-// such as Interfaces, strings, and records that contain reference counted fields.
-// StrataSort and QuickSort of reference counted items is relatively slow because
-// of the reference counting. An index sort will only move each item once or twice
-// and reduces the overheads of reference counting.
+// IndexSort can be used to speed up sorting of reference counted items such as
+// Interfaces, strings, and records that contain reference counted fields.
+// StrataSort and QuickSort of reference counted items are relatively slow because
+// of the reference counting. IndexSort will only move each item once or twice, so
+// the reference counting overheads are reduced.
 class procedure TStrataSort.IndexSort<T>(const AList: TList<T>;
                                          const ASortCompare: TComparison<T>);
 var
@@ -684,7 +684,8 @@ begin
   end;
 end;
 
-// This is a stable index sort based on an unstable sort - QuickSort.
+// This is a stable sort based on an unstable sort - QuickSort.
+// It was implemented mainly to provide a reference to match StrataSort against.
 class procedure TStrataSort.IndexQuickSort<T>(const AList: TList<T>;
                                               const ASortCompare: TComparison<T>);
 var
