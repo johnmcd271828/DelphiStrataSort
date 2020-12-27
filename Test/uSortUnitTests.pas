@@ -365,7 +365,7 @@ begin
   IndexQuickSortList := nil;
   List := TObjectList<TTestObject>.Create;
   try
-    TTestAssistant.LoadList<TTestObject>(TTestAssistant.RandomListValues,
+    TTestAssistant.LoadList<TTestObject>(GenerateListValues,
                                          TTestObject.CreateTestItem,
                                          List, ListSize);
     IndexSortList := TObjectList<TTestObject>.Create(List, False);
