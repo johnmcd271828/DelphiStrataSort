@@ -99,18 +99,18 @@ type
 
   TStrataSort = class
   strict private
-    class function MakeIndexCompareFn<T>(const CompareFn: TComparison<T>;
-                                         const List: TList<T>): TComparison<Integer>;
+    class function MakeIndexCompareFn<T>(const ACompareFn: TComparison<T>;
+                                         const AList: TList<T>): TComparison<Integer>;
     class procedure LoadSortedIndexList<T>(const AIndexList: TList<Integer>;
                                            const AList: TList<T>;
                                            const ASortCompare: TComparison<T>);
-    class function MakeQuickSortIndexCompareFn<T>(const CompareFn: TComparison<T>;
-                                                  const List: TList<T>): TComparison<Integer>;
+    class function MakeQuickSortIndexCompareFn<T>(const ACompareFn: TComparison<T>;
+                                                  const AList: TList<T>): TComparison<Integer>;
     class procedure LoadQuickSortedIndexList<T>(const AIndexList: TList<Integer>;
                                                 const AList: TList<T>;
                                                 const ASortCompare: TComparison<T>);
     class procedure ReorderListByIndex<T>(const AList: TList<T>;
-                                          const IndexList: TList<Integer>);
+                                          const AIndexList: TList<Integer>);
   public
     class procedure Sort<T>(const AList: TList<T>;
                             const ASortCompare: TComparison<T>); overload;
@@ -561,14 +561,21 @@ begin
 end;
 
 
-class function TStrataSort.MakeIndexCompareFn<T>(const CompareFn: TComparison<T>;
-                                                 const List: TList<T>): TComparison<Integer>;
+class function TStrataSort.MakeIndexCompareFn<T>(const ACompareFn: TComparison<T>;
+                                                 const AList: TList<T>): TComparison<Integer>;
+type
+  TArrayofT = array of T;
+var
+  InternalList: TArrayofT;
 begin
+  InternalList := TArrayofT(AList.List);
   Result := function(const Left, Right: Integer): Integer
             begin
-              Result := CompareFn(List[Left], List[Right]);
+              Result := ACompareFn(InternalList[Left], InternalList[Right]);
             end;
 end;
+
+
 
 class procedure TStrataSort.LoadSortedIndexList<T>(const AIndexList: TList<Integer>;
                                                    const AList: TList<T>;
@@ -595,12 +602,17 @@ begin
 end;
 
 // This creates a function that can be used with an unstable sort like QuickSort to implement a stable IndexSort.
-class function TStrataSort.MakeQuickSortIndexCompareFn<T>(const CompareFn: TComparison<T>;
-                                                          const List: TList<T>): TComparison<Integer>;
+class function TStrataSort.MakeQuickSortIndexCompareFn<T>(const ACompareFn: TComparison<T>;
+                                                          const AList: TList<T>): TComparison<Integer>;
+type
+  TArrayofT = array of T;
+var
+  InternalList: TArrayofT;
 begin
+  InternalList := TArrayofT(AList.List);
   Result := function(const Left, Right: Integer): Integer
             begin
-              Result := CompareFn(List[Left], List[Right]);
+              Result := ACompareFn(InternalList[Left], InternalList[Right]);
               if Result = 0 then
                 Result := CompareValue(Left, Right);
             end;
@@ -621,7 +633,7 @@ begin
 end;
 
 class procedure TStrataSort.ReorderListByIndex<T>(const AList: TList<T>;
-                                                  const IndexList: TList<Integer>);
+                                                  const AIndexList: TList<Integer>);
 type
   TArrayofT = array of T;
 var
@@ -645,22 +657,22 @@ begin
   // little temporary storage for this reordering.
   InternalList := TArrayofT(AList.List);
 
-  for StartIndex := 0 to IndexList.Count - 1 do
+  for StartIndex := 0 to AIndexList.Count - 1 do
   begin
     DestIndex := StartIndex;
-    SourceIndex := IndexList[DestIndex];
+    SourceIndex := AIndexList[DestIndex];
     if SourceIndex <> DestIndex then
     begin
       SaveItem := InternalList[DestIndex];
       while SourceIndex <> StartIndex do
       begin
         InternalList[DestIndex] := InternalList[SourceIndex];
-        IndexList[DestIndex] := DestIndex;
+        AIndexList[DestIndex] := DestIndex;
         DestIndex := SourceIndex;
-        SourceIndex := IndexList[DestIndex];
+        SourceIndex := AIndexList[DestIndex];
       end;
       InternalList[DestIndex] := SaveItem;
-      IndexList[DestIndex] := DestIndex;
+      AIndexList[DestIndex] := DestIndex;
     end;
   end;
 end;
