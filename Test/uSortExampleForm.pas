@@ -105,7 +105,7 @@ begin
     end;
     Sorter.RunSort;
     MemoBox.Clear;
-    while not Sorter.Eof do
+    while not Sorter.EndOfSort do
       MemoBox.Lines.Add(Sorter.Return);
   finally
     Sorter.Free;

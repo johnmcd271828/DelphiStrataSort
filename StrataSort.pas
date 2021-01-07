@@ -35,9 +35,9 @@ type
       PrevStackItem: TSortStackItem;    // A reference to the SortStackItem below this in the SortStack.
       SortItems: array of T;    // An array of Max(1, 2*(n-1)) SortItems, where n is the index of this SortStackItem in the SortStack.
       FCount: Integer;    // count of valid items in sortItems. ( there may still be obsolete items left in sortItems )
-      // The following three fields; FIndex, FCurrent and FEof are only valid after GetFirst or GetNext has been called.
+      // The following three fields; FIndex, FCurrent and FEndOfSort are only valid after GetFirst or GetNext has been called.
       FIndex: Integer;    // The index of the next item in sortItems.
-      FEof: Boolean;      // True when there are no more items at this or lower levels that haven't already been passed up to higher levels.
+      FEndOfSort: Boolean;      // True when there are no more items at this or lower levels that haven't already been passed up to higher levels.
       FCurrent: T;        // The current item in the sort from either sortItems or prevStackItem.
                           // FCurrent is the earliest item that we know about at this level, that hasn't already been passed up to a higher level.
     public
@@ -52,8 +52,8 @@ type
       procedure RecoverFirst;
       procedure LoadFromPreviousLevels;
       property Count: Integer read FCount;
-      property Current: T read FCurrent;    // Eof is only valid after GetFirst or GetNext has been called.
-      property Eof: Boolean read FEof;    // Eof is only valid after GetFirst or GetNext has been called.
+      property Current: T read FCurrent;    // Current is only valid after GetFirst or GetNext has been called.
+      property EndOfSort: Boolean read FEndOfSort;    // EndOfSort is only valid after GetFirst or GetNext has been called.
     end;
 
   private
@@ -78,7 +78,7 @@ type
     procedure RecoverFirst;
     procedure RecoverNext;
     function  GetCurrent: T; inline;
-    function  GetEof: Boolean; inline;
+    function  GetEndOfSort: Boolean; inline;
     procedure SortRelease(const Item: T);
     function  SortReturn: T; inline;
     procedure FailSafeRecovery(const AList: TList<T>);
@@ -94,7 +94,7 @@ type
     procedure Sort(const AList: TList<T>); overload;
     procedure Sort(const ASourceList: TList<T>;
                    const ADestinationList: TList<T>); overload;
-    property Eof: Boolean read GetEof;
+    property EndOfSort: Boolean read GetEndOfSort;
   end;
 
   TStrataSort = class
@@ -149,7 +149,7 @@ begin
   FCount := 0;
   FIndex := -1;
   FCurrent := Default(T);
-  FEof := True;
+  FEndOfSort := True;
 end;
 
 procedure TStrataSort<T>.TSortStackItem.Clear;
@@ -157,7 +157,7 @@ begin
   FCount := 0;
   FIndex := -1;
   FCurrent := Default(T);
-  FEof := True;
+  FEndOfSort := True;
   if Assigned(PrevStackItem) then
     PrevStackItem.Clear;
 end;
@@ -169,16 +169,16 @@ begin
   FCount := 1;
 end;
 
-/// This will set Current, FIndex and Eof.
+/// This will set Current, FIndex and EndOfSort.
 /// Note that Current will never be the same item in more than one SortStackItem.
 procedure TStrataSort<T>.TSortStackItem.GetNext;
 begin
   if ( PrevStackItem = nil ) or
-     PrevStackItem.Eof then
+     PrevStackItem.EndOfSort then
   begin
     if FIndex >= Count then
     begin
-      FEof := True;
+      FEndOfSort := True;
       FCurrent := Default(T);
     end
     else
@@ -208,7 +208,7 @@ begin
 end;
 
 // This method will prepare this level and levels below it for merging.
-// It sets up FIndex, FCurrent and FEof.
+// It sets up FIndex, FCurrent and FEndOfSort.
 procedure TStrataSort<T>.TSortStackItem.GetFirst;
 begin
   if Assigned(PrevStackItem) then
@@ -216,7 +216,7 @@ begin
     PrevStackItem.GetFirst;
   end;
   FIndex := 0;
-  FEof := False;
+  FEndOfSort := False;
   GetNext;
 end;
 
@@ -230,14 +230,14 @@ begin
     Inc(FIndex);
   end
   else if Assigned(PrevStackItem) and
-          not PrevStackItem.Eof then
+          not PrevStackItem.EndOfSort then
   begin
     FCurrent := PrevStackItem.Current;
     PrevStackItem.RecoverNext;
   end
   else
   begin
-    FEof := True;
+    FEndOfSort := True;
     FCurrent := Default(T);
   end;
 end;
@@ -251,7 +251,7 @@ begin
     PrevStackItem.RecoverFirst;
   end;
   FIndex := 0;
-  FEof := False;
+  FEndOfSort := False;
   RecoverNext;
 end;
 
@@ -267,7 +267,7 @@ begin
   begin
     PrevStackItem.GetFirst;
     ArrayIndex := 0;
-    while not PrevStackItem.Eof do
+    while not PrevStackItem.EndOfSort do
     begin
       SortItems[ArrayIndex] := PrevStackItem.Current;
       Inc(ArrayIndex);
@@ -379,9 +379,9 @@ begin
 end;
 
 // This is not valid until after RunSort.
-function TStrataSort<T>.GetEof: Boolean;
+function TStrataSort<T>.GetEndOfSort: Boolean;
 begin
-  Result := TopSortStackItem.Eof;
+  Result := TopSortStackItem.EndOfSort;
 end;
 
 function TStrataSort<T>.SortReturn: T;
@@ -479,7 +479,7 @@ begin
     RunSort;
 
     ADestinationList.Capacity := ADestinationList.Count + ASourceList.Count;
-    while not Eof do
+    while not EndOfSort do
       ADestinationList.Add(SortReturn);
   finally
     Clear;
