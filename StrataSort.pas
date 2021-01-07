@@ -4,6 +4,7 @@
 // Scala version created 2016.
 // Delphi version created May 2018.
 //
+// Minor change
 
 unit StrataSort;
 
