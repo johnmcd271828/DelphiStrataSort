@@ -594,7 +594,7 @@ begin
     IndexSorter.RunSort;
 
     AIndexList.Capacity := AList.Count;
-    while not IndexSorter.Eof do
+    while not IndexSorter.EndOfSort do
       AIndexList.Add(IndexSorter.Return);
   finally
     IndexSorter.Free;
