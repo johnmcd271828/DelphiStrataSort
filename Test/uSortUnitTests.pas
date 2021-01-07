@@ -454,15 +454,15 @@ begin
     Sorter.RunSort;
     for I := 0 to 6 do
     begin
-      Check(not Sorter.Eof, 'Premature Eof');
+      Check(not Sorter.EndOfSort, 'Premature EndOfSort');
       ReturnItem1 := Sorter.Return;
       CheckEquals(I, ReturnItem1.Key, 'ReturnItem1 Order Error');
-      Check(not Sorter.Eof, 'Premature Eof');
+      Check(not Sorter.EndOfSort, 'Premature EndOfSort');
       ReturnItem2 := Sorter.Return;
       CheckEquals(I, ReturnItem2.Key, 'ReturnItem2 Order Error');
       Check(ReturnItem1.Seq < ReturnItem2.Seq, 'ReturnItem Sequence Error');
     end;
-    Check(Sorter.Eof, 'Eof expected.');
+    Check(Sorter.EndOfSort, 'EndOfSort expected.');
   finally
     Sorter.Free;
   end;
@@ -486,11 +486,11 @@ begin
     Sorter.RunSort;
     for I := 0 to 6 do
     begin
-      Check(not Sorter.Eof, 'Premature Eof');
+      Check(not Sorter.EndOfSort, 'Premature EndOfSort');
       ReturnItem := Sorter.Return;
       CheckEquals(I, ReturnItem.Key, 'ReturnItem Order Error');
     end;
-    Check(Sorter.Eof, 'Eof expected.');
+    Check(Sorter.EndOfSort, 'EndOfSort expected.');
   finally
     Sorter.Free;
   end;
