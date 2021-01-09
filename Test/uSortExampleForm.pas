@@ -19,7 +19,7 @@ uses
   StrataSort;
 
 type
-  TSortTestForm = class(TForm)
+  TSortExampleForm = class(TForm)
     MemoBox: TMemo;
     ButtonPanel: TPanel;
     LoadButton: TButton;
@@ -39,7 +39,7 @@ type
   end;
 
 var
-  SortTestForm: TSortTestForm;
+  SortExampleForm: TSortExampleForm;
 
 implementation
 
@@ -53,8 +53,6 @@ const
                   'Zucchini,Tomato,Okra,Broccoli,Lettuce,Bok Choy,Leeks,' +
                   'Mushrooms,Cauliflower,Brussel Sprouts,Spinach,Onions';
 
-{ TSortTestForm }
-
 function CompareLength(const Left, Right: string): Integer;
 begin
   Result := CompareValue(Left.Length, Right.Length);
@@ -67,8 +65,10 @@ begin
   Result := Random(2) * 2 - 1;
 end;
 
+{ TSortExampleForm }
+
 // This is an example of sorting a TList<>
-procedure TSortTestForm.TrimAndSortMemoBox(const ASortCompare: TComparison<string>);
+procedure TSortExampleForm.TrimAndSortMemoBox(const ASortCompare: TComparison<string>);
 var
   StringList: TList<string>;
   Str: string;
@@ -91,7 +91,7 @@ end;
 
 // This is an examle of sorting without using a TList<>,
 // by creating a StrataSort object, then using Release, RunSort and Return.
-procedure TSortTestForm.SortMemoBoxUsingReleaseAndReturn(const ASortCompare: TComparison<string>);
+procedure TSortExampleForm.SortMemoBoxUsingReleaseAndReturn(const ASortCompare: TComparison<string>);
 var
   Sorter: TStrataSort<string>;
   Str: string;
@@ -114,34 +114,34 @@ end;
 
 { Event Handlers }
 
-procedure TSortTestForm.FormCreate(Sender: TObject);
+procedure TSortExampleForm.FormCreate(Sender: TObject);
 begin
   MemoBox.Lines.StrictDelimiter := True;
   MemoBox.Lines.CommaText := VegetableList;
 end;
 
-procedure TSortTestForm.LoadButtonClick(Sender: TObject);
+procedure TSortExampleForm.LoadButtonClick(Sender: TObject);
 begin
   MemoBox.Lines.CommaText := VegetableList;
 end;
 
-procedure TSortTestForm.SortAlphabeticallyButtonClick(Sender: TObject);
+procedure TSortExampleForm.SortAlphabeticallyButtonClick(Sender: TObject);
 begin
   TrimAndSortMemoBox(CompareText);
 end;
 
-procedure TSortTestForm.SortByLengthButtonClick(Sender: TObject);
+procedure TSortExampleForm.SortByLengthButtonClick(Sender: TObject);
 begin
   SortMemoBoxUsingReleaseAndReturn(CompareLength);
 end;
 
-procedure TSortTestForm.ShuffleButtonClick(Sender: TObject);
+procedure TSortExampleForm.ShuffleButtonClick(Sender: TObject);
 begin
   // This will mix up the list.
   TrimAndSortMemoBox(RandomCompare);
 end;
 
-procedure TSortTestForm.ClearButtonClick(Sender: TObject);
+procedure TSortExampleForm.ClearButtonClick(Sender: TObject);
 begin
   MemoBox.Clear;
 end;
