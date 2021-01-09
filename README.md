@@ -26,7 +26,7 @@ The supplied program group includes
 - a sample program with a couple of simple examples,
 - a unit test program that
   - tests sorting of object, interfaces, records, integers, bytes, and strings,
-  - tests all different sequences of items up to 9 items long,
+  - tests sorting all different sequences of items up to 9 items long,
   - tests TStrataSort's public methods.
 - a speed test program to test its performance when sorting different size lists, different types, and different initial sequences.
 
