@@ -9,25 +9,19 @@ StrataSort and QuickSort have similar speeds. StrataSort is generally a little f
 
 StrataSort uses more memory than QuickSort. The extra memory used by StrataSort is between one and two times the amount of memory used by the list. This is usually much less than the memory used by the objects in the list.
 
-The code required to sort a TList of Widgets is:
-```
-TStrataSort.Sort<TWidget>(WidgetList, CompareWidgets);
-```
-
-The compare function is a TComparison<T>, defined in Generics.Defaults as a<br>
-```
-reference to function(const Left, Right: T): Integer;
-```
+The code required to sort a TList of Widgets is:<br>
+`TStrataSort.Sort<TWidget>(WidgetList, CompareWidgets);`
 
 This will sort items in a TList<T> or a TObjectList<T>. The items can be anything that can be stored in a generic TList.
 
-It can sort items from one list to another:
-```
-TStrataSort.Sort<TWidget>(SourceList, DestinationList, CompareWidgets);<br>
-```
+It can sort items from one list to another:<br>
+`TStrataSort.Sort<TWidget>(SourceList, DestinationList, CompareWidgets);`<br>
 If the destination list is not empty, the sorted records are added to the end of the list.
 
 It can sort items that are not in a list. There is an example of this in the SortExample program - SortMemoBoxUsingReleaseAndReturn.
+
+The compare function is a TComparison<T>, defined in Generics.Defaults as a<br>
+`reference to function(const Left, Right: T): Integer;`
 
 The supplied program group includes
 - a sample program with a couple of simple examples,
