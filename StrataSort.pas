@@ -1,4 +1,4 @@
-// Copyright: John McDonald 1990 - 2020
+// Copyright: John McDonald 1990 - 2021
 // MS Pascal version created 1990.
 // C# version created 2007 - 2011.
 // Scala version created 2016.
@@ -24,7 +24,7 @@ type
   strict private
     /// <summary>
     /// The SortStack contains a list of these items. Each SortStackItem can contain SortItems.
-    /// The first SortStackItem can contain 1, the second 1, the third 2, the fourth 4, and so on.
+    /// The first SortStackItem can contain 1 SortItem, the second 1, the third 2, the fourth 4, and so on.
     /// Apart from the first, each SortStackItem can contain 2^(n-1) SortItems, where n is its index in the SortStack.
     /// Each SortStackItem can contain the same number of items as all the SortStackItems below it.
     /// Each SortStackItem contains pointers to the SortStackItem below it in the SortStack.
