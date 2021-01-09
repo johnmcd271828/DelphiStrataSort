@@ -1,23 +1,30 @@
 StrataSort
 ----------
-StrataSort is an open source stable sort implemented in Delphi.
+StrataSort is an open source stable sort implemented in Delphi.<br>
 A stable sort will preserve the order of items with equal keys.
+
 The sort algorithm supplied with Delphi, QuickSort, is not stable, so the order of items with equal keys sorted by QuickSort is arbitrary.
 
 StrataSort and QuickSort have similar speeds. StrataSort is generally a little faster than QuickSort when sorting objects in 32 bit programs, and a little slower when sorting in 64 bit programs or when sorting reference counted items.
 
-StrataSort uses more memory that QuickSort. QuickSort is an in-place sort, so if the data is already in a list, it uses very little extra memory. The extra memory used by StrataSort is between one and two times the amount of memory used by the list. This is usually much less than the memory used by the objects in the list.
+StrataSort uses more memory than QuickSort. The extra memory used by StrataSort is between one and two times the amount of memory used by the list. This is usually much less than the memory used by the objects in the list.
 
 The code required to sort a TList of Widgets is:
-  TStrataSort.Sort<TWidget>(WidgetList, CompareWidgets);
+```
+TStrataSort.Sort<TWidget>(WidgetList, CompareWidgets);
+```
 
-The compare function is a TComparison<T>, defined in Generics.Defaults as a
-    reference to function(const Left, Right: T): Integer;
+The compare function is a TComparison<T>, defined in Generics.Defaults as a<br>
+```
+reference to function(const Left, Right: T): Integer;
+```
 
 This will sort items in a TList<T> or a TObjectList<T>. The items can be anything that can be stored in a generic TList.
 
 It can sort items from one list to another:
-  TStrataSort.Sort<TWidget>(SourceList, DestinationList, CompareWidgets);
+```
+TStrataSort.Sort<TWidget>(SourceList, DestinationList, CompareWidgets);<br>
+```
 If the destination list is not empty, the sorted records are added to the end of the list.
 
 It can sort items that are not in a list. There is an example of this in the SortExample program - SortMemoBoxUsingReleaseAndReturn.
