@@ -1,4 +1,4 @@
-object SortTestForm: TSortTestForm
+object SortExampleForm: TSortExampleForm
   Left = 0
   Top = 0
   Caption = 'Sort Test'
