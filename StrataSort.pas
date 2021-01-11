@@ -57,16 +57,7 @@ type
     end;
 
   private
-    /// <summary>
-    /// This record type is just used to allow the sort to work with an IComparer<T>.
-    /// </summary>
-    type  TComparerInterfaceAdapter = record
-    strict private
-      FComparer: IComparer<T>;
-    public
-      constructor Create(const AComparer: IComparer<T>);
-      function Compare(const Left, Right: T): Integer;
-    end;
+    class function MakeTComparison(const AComparer: IComparer<T>): TComparison<T>;
   strict private
     SortCompare: TComparison<T>;
     SortStack: TObjectList<TSortStackItem>;
@@ -260,20 +251,15 @@ begin
 end;
 
 
-{ TStrataSort<T>.TComparerInterfaceAdapter<T> }
-
-constructor TStrataSort<T>.TComparerInterfaceAdapter.Create(const AComparer: IComparer<T>);
-begin
-  FComparer := AComparer;
-end;
-
-function TStrataSort<T>.TComparerInterfaceAdapter.Compare(const Left, Right: T): Integer;
-begin
-  Result := FComparer.Compare(Left, Right);
-end;
-
-
 { TStrataSort<T> }
+
+class function TStrataSort<T>.MakeTComparison(const AComparer: IComparer<T>): TComparison<T>;
+begin
+  Result := function(const Left, Right: T): Integer
+            begin
+              Result := AComparer.Compare(Left, Right);
+            end;
+end;
 
 /// <summary>
 /// This is used to clear everything at the start of a new sort,
@@ -485,7 +471,7 @@ end;
 
 constructor TStrataSort<T>.Create(const ASortComparer: IComparer<T>);
 begin
-  Create(TComparerInterfaceAdapter.Create(ASortComparer).Compare);
+  Create(MakeTComparison(ASortComparer));
 end;
 
 destructor TStrataSort<T>.Destroy;
@@ -515,7 +501,7 @@ class procedure TStrataSort.Sort<T>(const AList: TList<T>;
                                     const ASortComparer: IComparer<T>);
 begin
   Sort<T>(AList,
-          TStrataSort<T>.TComparerInterfaceAdapter.Create(ASortComparer).Compare);
+          TStrataSort<T>.MakeTComparison(ASortComparer));
 end;
 
 class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
@@ -537,7 +523,7 @@ class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
                                     const ASortComparer: IComparer<T>);
 begin
   Sort<T>(ASourceList, ADestinationList,
-          TStrataSort<T>.TComparerInterfaceAdapter.Create(ASortComparer).Compare);
+          TStrataSort<T>.MakeTComparison(ASortComparer));
 end;
 
 end.
