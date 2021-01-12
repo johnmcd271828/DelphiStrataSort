@@ -134,6 +134,8 @@ type
     class procedure Sort<T>(const ASourceList: TList<T>;
                             const ADestinationList: TList<T>;
                             const ASortComparer: IComparer<T>); overload;
+    class function  Sorted<T>(const AList: TList<T>;
+                              const ASortCompare: TComparison<T>): IEnumerable<T>;
   end;
 
 type
@@ -543,7 +545,9 @@ var
   OrigSortStackItem: TSortStackItem;
   PrevSortStackItem: TSortStackItem;
 begin
-  // <<<< Check that AStrataSort.TopSortStackItem is Assigned!
+  inherited Create;
+  if not Assigned(AStrataSort.TopSortStackItem) then
+    raise ESortError.Create('RunSort must be called before creating SortEnumerator.');
   FSortEnumerable := ASortEnumerable;
   SortStack := TObjectList<TSortStackItem>.Create;
   SortStack.Capacity := AStrataSort.SortStack.Count;
@@ -552,6 +556,7 @@ begin
   for OrigSortStackItem in AStrataSort.SortStack do
   begin
     TopSortStackItem := TSortStackItem.CreateClone(OrigSortStackItem, PrevSortStackItem);
+    PrevSortStackItem := TopSortStackItem;
     SortStack.Add(TopSortStackItem);
   end;
 
@@ -604,6 +609,7 @@ end;
 constructor TStrataSort<T>.TSortEnumerable.Create(const AStrataSort: TStrataSort<T>;
                                                   const AOwnsStrataSort: Boolean);
 begin
+  inherited Create;
   FStrataSort := AStrataSort;
   FOwnsStrataSort := AOwnsStrataSort;
 end;
@@ -672,6 +678,27 @@ class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
 begin
   Sort<T>(ASourceList, ADestinationList,
           TStrataSort<T>.MakeTComparison(ASortComparer));
+end;
+
+// Sort a list into the specified order.
+class function TStrataSort.Sorted<T>(const AList: TList<T>;
+                                     const ASortCompare: TComparison<T>): IEnumerable<T>;
+var
+  StrataSort: TStrataSort<T>;
+  ListItem: T;
+begin
+  StrataSort := TStrataSort<T>.Create(ASortCompare);
+  try
+    for ListItem in AList do
+      StrataSort.Release(ListItem);
+
+    StrataSort.RunSort;
+
+    Result := TStrataSort<T>.TSortEnumerable.Create(StrataSort);
+  except
+    StrataSort.Free;
+    raise;
+  end;
 end;
 
 end.

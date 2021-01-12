@@ -2,8 +2,8 @@ object SortExampleForm: TSortExampleForm
   Left = 0
   Top = 0
   Caption = 'Sort Test'
-  ClientHeight = 474
-  ClientWidth = 528
+  ClientHeight = 518
+  ClientWidth = 641
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -17,8 +17,8 @@ object SortExampleForm: TSortExampleForm
   object MemoBox: TMemo
     Left = 0
     Top = 0
-    Width = 528
-    Height = 419
+    Width = 641
+    Height = 463
     Align = alClient
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
@@ -30,14 +30,18 @@ object SortExampleForm: TSortExampleForm
     ScrollBars = ssVertical
     TabOrder = 1
     WordWrap = False
+    ExplicitWidth = 528
+    ExplicitHeight = 419
   end
   object ButtonPanel: TPanel
     Left = 0
-    Top = 419
-    Width = 528
+    Top = 463
+    Width = 641
     Height = 55
     Align = alBottom
     TabOrder = 0
+    ExplicitLeft = 8
+    ExplicitTop = 419
     object LoadButton: TButton
       Left = 16
       Top = 16
@@ -66,22 +70,31 @@ object SortExampleForm: TSortExampleForm
       OnClick = SortByLengthButtonClick
     end
     object ShuffleButton: TButton
-      Left = 335
+      Left = 455
       Top = 16
       Width = 75
       Height = 25
       Caption = 'Shuffle'
-      TabOrder = 3
+      TabOrder = 4
       OnClick = ShuffleButtonClick
     end
     object ClearButton: TButton
-      Left = 416
+      Left = 536
       Top = 16
       Width = 75
       Height = 25
       Caption = 'Clear'
-      TabOrder = 4
+      TabOrder = 5
       OnClick = ClearButtonClick
+    end
+    object SortedEnumeratorButton: TButton
+      Left = 335
+      Top = 16
+      Width = 113
+      Height = 25
+      Caption = 'Sorted Enumerator'
+      TabOrder = 3
+      OnClick = SortedEnumeratorButtonClick
     end
   end
 end
