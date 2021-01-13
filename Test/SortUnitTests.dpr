@@ -16,10 +16,11 @@ program SortUnitTests;
 
 uses
   DUnitTestRunner,
-  uSortUnitTests in 'uSortUnitTests.pas',
+  StrataSort in '..\StrataSort.pas',
   uSortTestTypes in 'uSortTestTypes.pas',
   uSequenceGenerator in 'uSequenceGenerator.pas',
-  StrataSort in '..\StrataSort.pas';
+  uSortUnitTests in 'uSortUnitTests.pas',
+  uSortEnumeratorUnitTests in 'uSortEnumeratorUnitTests.pas';
 
 {$R *.RES}
 

@@ -65,7 +65,7 @@ type
       FSortEnumerable: IInterface;
       SortStack: TObjectList<TSortStackItem>;
       TopSortStackItem: TSortStackItem;
-      IsAtStart: Boolean;
+      BeginningOfSort: Boolean;    // This is true before MoveNext is called for the first time.
 
       procedure Reset;
       function  MoveNext: Boolean;
@@ -135,7 +135,9 @@ type
                             const ADestinationList: TList<T>;
                             const ASortComparer: IComparer<T>); overload;
     class function  Sorted<T>(const AList: TList<T>;
-                              const ASortCompare: TComparison<T>): IEnumerable<T>;
+                              const ASortCompare: TComparison<T>): IEnumerable<T>; overload;
+    class function Sorted<T>(const AList: TList<T>;
+                             const ASortComparer: IComparer<T>): IEnumerable<T>; overload;
   end;
 
 type
@@ -560,7 +562,7 @@ begin
     SortStack.Add(TopSortStackItem);
   end;
 
-  IsAtStart := True;
+  BeginningOfSort := True;
 end;
 
 destructor TStrataSort<T>.TSortEnumerator.Destroy;
@@ -571,15 +573,15 @@ end;
 
 procedure TStrataSort<T>.TSortEnumerator.Reset;
 begin
-  IsAtStart := True;
+  BeginningOfSort := True;
 end;
 
 function TStrataSort<T>.TSortEnumerator.MoveNext: Boolean;
 begin
-  if IsAtStart then
+  if BeginningOfSort then
   begin
     TopSortStackItem.GetFirst;
-    IsAtStart := False;
+    BeginningOfSort := False;
   end
   else
     TopSortStackItem.GetNext;
@@ -680,7 +682,7 @@ begin
           TStrataSort<T>.MakeTComparison(ASortComparer));
 end;
 
-// Sort a list into the specified order.
+// Create a sorted iterator for the list.
 class function TStrataSort.Sorted<T>(const AList: TList<T>;
                                      const ASortCompare: TComparison<T>): IEnumerable<T>;
 var
@@ -699,6 +701,14 @@ begin
     StrataSort.Free;
     raise;
   end;
+end;
+
+// Create a sorted iterator for the list.
+class function TStrataSort.Sorted<T>(const AList: TList<T>;
+                                     const ASortComparer: IComparer<T>): IEnumerable<T>;
+begin
+  Result := Sorted<T>(AList,
+                      TStrataSort<T>.MakeTComparison(ASortComparer))
 end;
 
 end.
