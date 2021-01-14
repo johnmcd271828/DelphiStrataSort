@@ -27,15 +27,18 @@ type
     SortByLengthButton: TButton;
     ShuffleButton: TButton;
     ClearButton: TButton;
+    SortedEnumeratorButton: TButton;
     procedure LoadButtonClick(Sender: TObject);
     procedure SortAlphabeticallyButtonClick(Sender: TObject);
     procedure SortByLengthButtonClick(Sender: TObject);
     procedure ClearButtonClick(Sender: TObject);
     procedure ShuffleButtonClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure SortedEnumeratorButtonClick(Sender: TObject);
   private
     procedure TrimAndSortMemoBox(const ASortCompare: TComparison<string>);
     procedure SortMemoBoxUsingReleaseAndReturn(const ASortCompare: TComparison<string>);
+    procedure SortMemoBoxUsingSortedEnumerator(const ASortCompare: TComparison<string>);
   end;
 
 var
@@ -112,6 +115,28 @@ begin
   end;
 end;
 
+// This is an example of sorting to an IEnumerable<T>
+procedure TSortExampleForm.SortMemoBoxUsingSortedEnumerator(const ASortCompare: TComparison<string>);
+var
+  StringList: TList<string>;
+  Str: string;
+begin
+  StringList := TList<string>.Create;
+  try
+    for Str in MemoBox.Lines do
+    begin
+      if Trim(Str) <> '' then
+        StringList.Add(Trim(Str));
+    end;
+
+    MemoBox.Clear;
+    for Str in TStrataSort.Sorted<string>(StringList, ASortCompare) do
+      MemoBox.Lines.Add(Str);
+  finally
+    StringList.Free;
+  end;
+end;
+
 { Event Handlers }
 
 procedure TSortExampleForm.FormCreate(Sender: TObject);
@@ -133,6 +158,11 @@ end;
 procedure TSortExampleForm.SortByLengthButtonClick(Sender: TObject);
 begin
   SortMemoBoxUsingReleaseAndReturn(CompareLength);
+end;
+
+procedure TSortExampleForm.SortedEnumeratorButtonClick(Sender: TObject);
+begin
+  SortMemoBoxUsingSortedEnumerator(CompareText);
 end;
 
 procedure TSortExampleForm.ShuffleButtonClick(Sender: TObject);

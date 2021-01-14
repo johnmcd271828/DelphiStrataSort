@@ -44,6 +44,8 @@ type
       constructor Create(const ACapacity: Integer;
                          const APrevStackItem: TSortStackItem;
                          const ASortCompare: TComparison<T>);
+    constructor CreateClone(const ASortStackItem: TSortStackItem;
+                            const APrevStackItem: TSortStackItem);
       procedure Clear;
       procedure AddSingleItem(const Item: T); inline;
       procedure GetNext;
@@ -57,6 +59,38 @@ type
     end;
 
   private
+  type
+    TSortEnumerator = class(TInterfacedObject, IEnumerator<T>, IEnumerator)
+    strict private
+      FSortEnumerable: IInterface;
+      SortStack: TObjectList<TSortStackItem>;
+      TopSortStackItem: TSortStackItem;
+      BeginningOfSort: Boolean;    // This is true before MoveNext is called for the first time.
+
+      procedure Reset;
+      function  MoveNext: Boolean;
+      function  GetCurrent: TObject;
+      function  GenericGetCurrent: T;
+      function  IEnumerator<T>.GetCurrent = GenericGetCurrent;
+    public
+      constructor Create(const ASortEnumerable: IInterface;
+                         const AStrataSort: TStrataSort<T>);
+      destructor Destroy; override;
+    end;
+    TSortEnumerable = class(TInterfacedObject, IEnumerable<T>, IEnumerable)
+    strict private
+      FStrataSort: TStrataSort<T>;
+      FOwnsStrataSort: Boolean;
+
+      function GetGenericEnumerator: IEnumerator<T>;
+      function GetEnumerator: IEnumerator;
+      function IEnumerable<T>.GetEnumerator = GetGenericEnumerator;
+    public
+      constructor Create(const AStrataSort: TStrataSort<T>;
+                         const AOwnsStrataSort: Boolean = True);
+      destructor Destroy; override;
+    end;
+
     class function MakeTComparison(const AComparer: IComparer<T>): TComparison<T>;
   strict private
     SortCompare: TComparison<T>;
@@ -100,12 +134,18 @@ type
     class procedure Sort<T>(const ASourceList: TList<T>;
                             const ADestinationList: TList<T>;
                             const ASortComparer: IComparer<T>); overload;
+    class function  Sorted<T>(const AList: TList<T>;
+                              const ASortCompare: TComparison<T>): IEnumerable<T>; overload;
+    class function Sorted<T>(const AList: TList<T>;
+                             const ASortComparer: IComparer<T>): IEnumerable<T>; overload;
   end;
 
 type
   ESortError = class(Exception);
 
 implementation
+
+uses TypInfo;
 
 { TStrataSort<T>.TSortStackItem }
 
@@ -118,6 +158,24 @@ begin
   PrevStackItem := APrevStackItem;
   SetLength(SortItems, ACapacity);
   FCount := 0;
+  FIndex := -1;
+  FCurrent := Default(T);
+  FEndOfSort := True;
+end;
+
+// This is used to create a copy of a SortStackItem for an enumerator.
+// It should not be used until after RunSort.
+// It creates a copy of a SortStackItem that shares the original SortItems array,
+// but links to a PrevStackItem in its own SortStack.
+// It has the same Count, but Index, Count and Current are independent.
+constructor TStrataSort<T>.TSortStackItem.CreateClone(const ASortStackItem: TSortStackItem;
+                                                      const APrevStackItem: TSortStackItem);
+begin
+  inherited Create;
+  SortCompare := ASortStackItem.SortCompare;
+  PrevStackItem := APrevStackItem;
+  SortItems := ASortStackItem.SortItems;
+  FCount := ASortStackItem.Count;
   FIndex := -1;
   FCurrent := Default(T);
   FEndOfSort := True;
@@ -481,6 +539,104 @@ begin
 end;
 
 
+{ TStrataSort<T>.TSortEnumerator }
+
+constructor TStrataSort<T>.TSortEnumerator.Create(const ASortEnumerable: IInterface;
+                                                  const AStrataSort: TStrataSort<T>);
+var
+  OrigSortStackItem: TSortStackItem;
+  PrevSortStackItem: TSortStackItem;
+begin
+  inherited Create;
+  if not Assigned(AStrataSort.TopSortStackItem) then
+    raise ESortError.Create('RunSort must be called before creating SortEnumerator.');
+  FSortEnumerable := ASortEnumerable;
+  SortStack := TObjectList<TSortStackItem>.Create;
+  SortStack.Capacity := AStrataSort.SortStack.Count;
+  PrevSortStackItem := nil;
+  TopSortStackItem := nil;
+  for OrigSortStackItem in AStrataSort.SortStack do
+  begin
+    TopSortStackItem := TSortStackItem.CreateClone(OrigSortStackItem, PrevSortStackItem);
+    PrevSortStackItem := TopSortStackItem;
+    SortStack.Add(TopSortStackItem);
+  end;
+
+  BeginningOfSort := True;
+end;
+
+destructor TStrataSort<T>.TSortEnumerator.Destroy;
+begin
+  SortStack.Free;
+  inherited;
+end;
+
+procedure TStrataSort<T>.TSortEnumerator.Reset;
+begin
+  BeginningOfSort := True;
+end;
+
+function TStrataSort<T>.TSortEnumerator.MoveNext: Boolean;
+begin
+  if BeginningOfSort then
+  begin
+    TopSortStackItem.GetFirst;
+    BeginningOfSort := False;
+  end
+  else
+    TopSortStackItem.GetNext;
+  Result := not TopSortStackItem.EndOfSort;
+end;
+
+function TStrataSort<T>.TSortEnumerator.GenericGetCurrent: T;
+begin
+  Result := TopSortStackItem.Current;
+end;
+
+function TStrataSort<T>.TSortEnumerator.GetCurrent: TObject;
+var
+  CurrentItem: T;
+begin
+  if PTypeInfo(TypeInfo(T)).Kind = tkClass then
+  begin
+    CurrentItem := TopSortStackItem.Current;
+    Result :=  PObject(@CurrentItem)^;
+  end
+  else
+    raise ESortError.Create('SortItem is not an object.');
+end;
+
+{ TStrataSort<T>.TSortEnumerable }
+
+constructor TStrataSort<T>.TSortEnumerable.Create(const AStrataSort: TStrataSort<T>;
+                                                  const AOwnsStrataSort: Boolean);
+begin
+  inherited Create;
+  FStrataSort := AStrataSort;
+  FOwnsStrataSort := AOwnsStrataSort;
+end;
+
+destructor TStrataSort<T>.TSortEnumerable.Destroy;
+begin
+  if FOwnsStrataSort then
+    FStrataSort.Free;
+  inherited;
+end;
+
+function TStrataSort<T>.TSortEnumerable.GetEnumerator: IEnumerator;
+begin
+  if PTypeInfo(TypeInfo(T)).Kind = tkClass then
+    Result := TSortEnumerator.Create(Self, FStrataSort)
+  else
+    raise ESortError.Create('SortItem is not an object.');
+end;
+
+function TStrataSort<T>.TSortEnumerable.GetGenericEnumerator: IEnumerator<T>;
+begin
+  Result := TSortEnumerator.Create(Self, FStrataSort);
+end;
+
+
 { TStrataSort }
 
 // Sort a list into the specified order.
@@ -524,6 +680,35 @@ class procedure TStrataSort.Sort<T>(const ASourceList: TList<T>;
 begin
   Sort<T>(ASourceList, ADestinationList,
           TStrataSort<T>.MakeTComparison(ASortComparer));
+end;
+
+// Create a sorted iterator for the list.
+class function TStrataSort.Sorted<T>(const AList: TList<T>;
+                                     const ASortCompare: TComparison<T>): IEnumerable<T>;
+var
+  StrataSort: TStrataSort<T>;
+  ListItem: T;
+begin
+  StrataSort := TStrataSort<T>.Create(ASortCompare);
+  try
+    for ListItem in AList do
+      StrataSort.Release(ListItem);
+
+    StrataSort.RunSort;
+
+    Result := TStrataSort<T>.TSortEnumerable.Create(StrataSort);
+  except
+    StrataSort.Free;
+    raise;
+  end;
+end;
+
+// Create a sorted iterator for the list.
+class function TStrataSort.Sorted<T>(const AList: TList<T>;
+                                     const ASortComparer: IComparer<T>): IEnumerable<T>;
+begin
+  Result := Sorted<T>(AList,
+                      TStrataSort<T>.MakeTComparison(ASortComparer))
 end;
 
 end.

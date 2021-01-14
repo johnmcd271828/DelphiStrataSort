@@ -93,10 +93,11 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="uSortUnitTests.pas"/>
+        <DCCReference Include="..\StrataSort.pas"/>
         <DCCReference Include="uSortTestTypes.pas"/>
         <DCCReference Include="uSequenceGenerator.pas"/>
-        <DCCReference Include="..\StrataSort.pas"/>
+        <DCCReference Include="uSortUnitTests.pas"/>
+        <DCCReference Include="uSortEnumeratorUnitTests.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -122,7 +123,13 @@
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
-            <Deployment Version="3">
+            <Deployment Version="2">
+                <DeployFile LocalName="Win32\Debug\SortUnitTests.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>SortUnitTests.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="Win32">
                         <Operation>0</Operation>
