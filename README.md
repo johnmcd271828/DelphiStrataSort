@@ -12,13 +12,13 @@ StrataSort uses more memory than QuickSort. The extra memory used by StrataSort 
 The code required to sort a TList of Widgets is:<br>
 `TStrataSort.Sort<TWidget>(WidgetList, CompareWidgets);`
 
-This will sort items in a TList<T> or a TObjectList<T>. The items can be anything that can be stored in a generic TList.
+This will sort items in a `TList<T>` or a `TObjectList<T>`. The items can be anything that can be stored in a generic TList.
 
 It can sort items from one list to another:<br>
 `TStrataSort.Sort<TWidget>(SourceList, DestinationList, CompareWidgets);`<br>
 If the destination list is not empty, the sorted records are added to the end of the list.
 
-It can create a sorted IEnumerable<T> from a list, so that you can use code like:
+It can create a sorted `IEnumerable<T>` from a list, so that you can use code like:
 ```
 var
   Widget: TWidget;
@@ -29,7 +29,7 @@ var
 
 It can sort items that are not in a list. There is an example of this in the SortExample program, the `SortMemoBoxUsingReleaseAndReturn` method.
 
-The compare function is a TComparison<T>, defined in Generics.Defaults as a<br>
+The compare function is a `TComparison<T>`, defined in Generics.Defaults as a<br>
 `reference to function(const Left, Right: T): Integer;`
 
 The supplied program group includes
@@ -46,13 +46,13 @@ You might not want to do that for ESortError. It is raised when StrataSort metho
 
 The unit test "TestSequences" will take a while, maybe 30 sec, because it is running 7,685,706 different sorts.
 
-StrataSort works with recent versions of Delphi; XE6 and later. It may work with some versions before that, but it is dependent on the List property of TList<T>, which was introduced in a version after Delphi XE2.
+StrataSort works with recent versions of Delphi; XE6 and later. It may work with some versions before that, but it is dependent on the `List` property of `TList<T>`, which was introduced in a version after Delphi XE2.
 
 It works ok in Delphi 10.3.3 (Rio), but SortUnitTests and SortSpeedTest will not compile.
 Something was broken in Delphi 10.3 and was fixed in 10.4. (SortUnitTests and SortSpeedTest work ok in Delphi 10.2 and are working again in Delphi 10.4.1 (Sydney) ). 
 
 Compiling StrataSort in Delphi XE6 shows an incorrect warning on the line:<br>
-  Create(MakeTComparison(ASortComparer));<br>
+`  Create(MakeTComparison(ASortComparer));`<br>
 in the constructor<br>
-  constructor TStrataSort<T>.Create(const ASortComparer: IComparer<T>);
+`  constructor TStrataSort<T>.Create(const ASortComparer: IComparer<T>);`
 
