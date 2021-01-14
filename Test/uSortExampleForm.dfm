@@ -30,8 +30,6 @@ object SortExampleForm: TSortExampleForm
     ScrollBars = ssVertical
     TabOrder = 1
     WordWrap = False
-    ExplicitWidth = 528
-    ExplicitHeight = 419
   end
   object ButtonPanel: TPanel
     Left = 0
@@ -40,8 +38,6 @@ object SortExampleForm: TSortExampleForm
     Height = 55
     Align = alBottom
     TabOrder = 0
-    ExplicitLeft = 8
-    ExplicitTop = 419
     object LoadButton: TButton
       Left = 16
       Top = 16

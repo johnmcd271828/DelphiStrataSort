@@ -3,7 +3,7 @@
 
 unit uSortUnitTests;
 
-//  Tests for class TStrataSort.
+//  Tests for TStrataSort and TStrataSorter<T> classes.
 //  Most tests raise an exception when problems are found, so there are few explicit Checks.
 
 interface
@@ -440,12 +440,12 @@ end;
 
 procedure TSortUnitTests.TestReleaseSortReturn;
 var
-  Sorter: TStrataSort<TSortItem>;
+  Sorter: TStrataSorter<TSortItem>;
   I: Integer;
   ReturnItem1: TSortItem;
   ReturnItem2: TSortItem;
 begin
-  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  Sorter := TStrataSorter<TSortItem>.Create(CompareSortItem);
   try
     for I := 1 to 14 do
     begin
@@ -472,12 +472,12 @@ end;
 procedure TSortUnitTests.TestReleaseSortReturnUsingIComparer;
 var
   SortComparer: IComparer<TSortItem>;
-  Sorter: TStrataSort<TSortItem>;
+  Sorter: TStrataSorter<TSortItem>;
   I: Integer;
   ReturnItem: TSortItem;
 begin
   SortComparer := TComparer<TSortItem>.Construct(CompareSortItem);
-  Sorter := TStrataSort<TSortItem>.Create(SortComparer);
+  Sorter := TStrataSorter<TSortItem>.Create(SortComparer);
   try
     for I := 1 to 7 do
     begin
@@ -499,9 +499,9 @@ end;
 
 procedure TSortUnitTests.TestCallRunSortTwice;
 var
-  Sorter: TStrataSort<TSortItem>;
+  Sorter: TStrataSorter<TSortItem>;
 begin
-  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  Sorter := TStrataSorter<TSortItem>.Create(CompareSortItem);
   try
     Sorter.Release(TSortItem.Create(1, 1));
     Sorter.RunSort;
@@ -511,7 +511,7 @@ begin
     except
       on E: ESortError do
       begin
-        CheckEquals('StrataSort: RunSort called twice.', E.Message);
+        CheckEquals('StrataSorter: RunSort called twice.', E.Message);
       end;
     end;
   finally
@@ -522,9 +522,9 @@ end;
 
 procedure TSortUnitTests.TestCallReturnBeforeRunSort;
 var
-  Sorter: TStrataSort<TSortItem>;
+  Sorter: TStrataSorter<TSortItem>;
 begin
-  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  Sorter := TStrataSorter<TSortItem>.Create(CompareSortItem);
   try
     Sorter.Release(TSortItem.Create(1, 1));
     try
@@ -533,7 +533,7 @@ begin
     except
       on E: ESortError do
       begin
-        CheckEquals('StrataSort: RunSort must be called before Return.', E.Message);
+        CheckEquals('StrataSorter: RunSort must be called before Return.', E.Message);
       end;
     end;
   finally
@@ -544,9 +544,9 @@ end;
 
 procedure TSortUnitTests.TestCallReleaseAfterRunSort;
 var
-  Sorter: TStrataSort<TSortItem>;
+  Sorter: TStrataSorter<TSortItem>;
 begin
-  Sorter := TStrataSort<TSortItem>.Create(CompareSortItem);
+  Sorter := TStrataSorter<TSortItem>.Create(CompareSortItem);
   try
     Sorter.Release(TSortItem.Create(1, 1));
     Sorter.RunSort;
@@ -556,7 +556,7 @@ begin
     except
       on E: ESortError do
       begin
-        CheckEquals('StrataSort: Release called after RunSort.', E.Message);
+        CheckEquals('StrataSorter: Release called after RunSort.', E.Message);
       end;
     end;
   finally
@@ -567,13 +567,13 @@ end;
 
 procedure TSortUnitTests.TestSortReuse;
 var
-  Sorter: TStrataSort<TTestObject>;
+  Sorter: TStrataSorter<TTestObject>;
   List: TObjectList<TTestObject>;
 const
   FirstListSize: Integer = 3000;
   SecondListSize: Integer = 1000;
 begin
-  Sorter := TStrataSort<TTestObject>.Create(TTestObject.Compare);
+  Sorter := TStrataSorter<TTestObject>.Create(TTestObject.Compare);
   try
     List := TObjectList<TTestObject>.Create;
     try
