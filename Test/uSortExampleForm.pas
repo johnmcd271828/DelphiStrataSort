@@ -92,14 +92,14 @@ begin
   end;
 end;
 
-// This is an examle of sorting without using a TList<>,
-// by creating a StrataSort object, then using Release, RunSort and Return.
+// This is an example of sorting without using a TList<>,
+// by creating a TStrataSorter object, then using Release, RunSort and Return.
 procedure TSortExampleForm.SortMemoBoxUsingReleaseAndReturn(const ASortCompare: TComparison<string>);
 var
-  Sorter: TStrataSort<string>;
+  Sorter: TStrataSorter<string>;
   Str: string;
 begin
-  Sorter := TStrataSort<string>.Create(ASortCompare);
+  Sorter := TStrataSorter<string>.Create(ASortCompare);
   try
     for Str in MemoBox.Lines do
     begin
