@@ -18,7 +18,16 @@ It can sort items from one list to another:<br>
 `TStrataSort.Sort<TWidget>(SourceList, DestinationList, CompareWidgets);`<br>
 If the destination list is not empty, the sorted records are added to the end of the list.
 
-It can sort items that are not in a list. There is an example of this in the SortExample program - SortMemoBoxUsingReleaseAndReturn.
+It can create a sorted IEnumerable<T> from a list, so that you can use code like:
+```
+var
+  Widget: TWidget;
+...
+  for Widget in TStrataSort.Sorted<TWidget>(WidgetList, CompareWidgets) do
+    ....
+```
+
+It can sort items that are not in a list. There is an example of this in the SortExample program, the `SortMemoBoxUsingReleaseAndReturn` method.
 
 The compare function is a TComparison<T>, defined in Generics.Defaults as a<br>
 `reference to function(const Left, Right: T): Integer;`
@@ -31,6 +40,19 @@ The supplied program group includes
   - tests TStrataSort's public methods.
 - a speed test program to test its performance when sorting different size lists, different types, and different initial sequences.
 
-The sort class works with recent versions of Delphi. I don't know the earliest version that it will work with, but it is dependent on the List property of TList<T>, which was introduced some time after Delphi XE2.
+Unit tests will raise and catch ESortError and ETriggeredException. This is to test error handling and error recovery.<br>
+You can safely tell the IDE to "Ignore this exception type" for ETriggeredException. It is only raised in the unit tests.<br>
+You might not want to do that for ESortError. It is raised when StrataSort methods are called incorrectly.
 
-The SortUnitTest program and SortSpeedTest program do not compile in Delphi 10.3.3. Something was broken in Delphi 10.3 and was fixed in 10.4.
+The unit test "TestSequences" will take a while, maybe 30 sec, because it is running 7,685,706 different sorts.
+
+StrataSort works with recent versions of Delphi; XE6 and later. It may work with some versions before that, but it is dependent on the List property of TList<T>, which was introduced in a version after Delphi XE2.
+
+It works ok in Delphi 10.3.3 (Rio), but SortUnitTests and SortSpeedTest will not compile.
+Something was broken in Delphi 10.3 and was fixed in 10.4. (SortUnitTests and SortSpeedTest work ok in Delphi 10.2 and are working again in Delphi 10.4.1 (Sydney) ). 
+
+Compiling StrataSort in Delphi XE6 shows an incorrect warning on the line:<br>
+  Create(MakeTComparison(ASortComparer));<br>
+in the constructor<br>
+  constructor TStrataSort<T>.Create(const ASortComparer: IComparer<T>);
+
