@@ -11,8 +11,8 @@ StrataSort uses more memory than QuickSort. The extra memory used by StrataSort 
 
 Usage
 -----
-To use StrataSort, include StrataSort in the uses clause.<br>
-You will usually also need Generics.Defaults and Generics.Collections in the uses clause.
+To use StrataSort, include `StrataSort` in the uses clause.<br>
+You will usually also need `Generics.Defaults` and `Generics.Collections` in the uses clause.
 
 In the following examples, CompareWidgets, Widget and WidgetList are declared as follows:
 ```
@@ -29,7 +29,7 @@ The compare function is a `TComparison<T>`, defined in Generics.Defaults as a<br
 `reference to function(const Left, Right: T): Integer;`<br>
 You can use anonymous methods as the compare function.
 
-TWidget can be anything that can be stored in a generic TList; a class, record, interface, Integer, string, etc.
+TWidget can be anything that can be stored in a generic TList - a class, record, interface, Integer, string, etc.
 
 To sort WidgetList, call:<br>
 `TStrataSort.Sort<TWidget>(WidgetList, CompareWidgets);`<br>
